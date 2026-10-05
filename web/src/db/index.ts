@@ -1,10 +1,11 @@
 import { PGlite } from "@electric-sql/pglite";
+import { attachDatabasePool } from "@vercel/functions";
+import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
-import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
-export type DB = ReturnType<typeof drizzlePostgres<typeof schema>>;
+export type DB = ReturnType<typeof drizzlePg<typeof schema>>;
 
 /**
  * DATABASE_URL, o POSTGRES_URL si la base se creó con la integración de Supabase en Vercel.
@@ -34,18 +35,18 @@ function connect(): DB {
   const u = new URL(url);
   const local = ["localhost", "127.0.0.1"].includes(u.hostname);
   for (const k of [...u.searchParams.keys()]) u.searchParams.delete(k);
-  const client = postgres(u.toString(), {
-    // prepare: false es necesario con el pooler de Supabase (modo transacción).
-    prepare: false,
+  const pool = new Pool({
+    connectionString: u.toString(),
     max: Number(process.env.DATABASE_POOL_MAX) || 3,
-    ssl: local ? false : "require",
-    // En Vercel la función se congela entre visitas y las conexiones abiertas mueren.
-    // Cerramos las inactivas pronto y no esperamos indefinidamente a conectar.
-    idle_timeout: 5,
-    connect_timeout: 10,
-    max_lifetime: 60 * 5,
+    // Conexión cifrada. El certificado del pooler de Supabase no está en el almacén de Node, por eso no se verifica.
+    ssl: local ? false : { rejectUnauthorized: false },
+    idleTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
   });
-  return drizzlePostgres(client, { schema });
+  // En Vercel: mantiene viva la función hasta cerrar las conexiones inactivas,
+  // para que nunca se reutilice una conexión que murió mientras la función estaba congelada.
+  if (process.env.VERCEL) attachDatabasePool(pool);
+  return drizzlePg(pool, { schema });
 }
 
 // En desarrollo Next recarga módulos; reutilizamos la conexión.
