@@ -6,15 +6,33 @@ import * as schema from "./schema";
 
 export type DB = ReturnType<typeof drizzlePostgres<typeof schema>>;
 
-const url = process.env.DATABASE_URL || "pglite:./.data/db";
+/**
+ * DATABASE_URL, o POSTGRES_URL si la base se creó con la integración de Supabase en Vercel.
+ * Sin ninguna, en tu computadora se usa Postgres embebido (carpeta .data).
+ */
+export function databaseUrl() {
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (url) return url;
+  if (process.env.VERCEL) throw new Error("Falta la variable DATABASE_URL (o POSTGRES_URL) en Vercel.");
+  return "pglite:./.data/db";
+}
 
 function connect(): DB {
+  const url = databaseUrl();
   if (url.startsWith("pglite:")) {
-    // Postgres embebido para desarrollo local: no requiere instalar nada.
     const client = new PGlite(url.slice("pglite:".length));
     return drizzlePglite(client, { schema }) as unknown as DB;
   }
-  const client = postgres(url, { max: 5, prepare: false });
+  // Se quitan parámetros extra de la URL (p. ej. los que agrega Supabase) que Postgres no reconoce.
+  const u = new URL(url);
+  const local = ["localhost", "127.0.0.1"].includes(u.hostname);
+  for (const k of [...u.searchParams.keys()]) u.searchParams.delete(k);
+  const client = postgres(u.toString(), {
+    // prepare: false es necesario con el pooler de Supabase (modo transacción).
+    prepare: false,
+    max: Number(process.env.DATABASE_POOL_MAX) || 3,
+    ssl: local ? false : "require",
+  });
   return drizzlePostgres(client, { schema });
 }
 

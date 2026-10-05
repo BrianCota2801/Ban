@@ -7,12 +7,13 @@ import { db } from "../src/db";
 import { users } from "../src/db/schema";
 import { hashPassword, PASSWORD_MIN } from "../src/lib/password";
 
-export async function upsertAdmin(email: string, password: string, name = "Administrador") {
+export async function upsertAdmin(email: string, password: string, name = "Administrador", onlyIfMissing = false) {
   email = email.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Correo no válido.");
   if (password.length < 12) throw new Error(`La contraseña del admin debe tener al menos 12 caracteres (mínimo general: ${PASSWORD_MIN}).`);
-  const passwordHash = await hashPassword(password);
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existing && onlyIfMissing) return "ya existía (sin cambios)";
+  const passwordHash = await hashPassword(password);
   if (existing) {
     await db.update(users).set({ role: "admin", passwordHash }).where(eq(users.id, existing.id));
     return "actualizado";

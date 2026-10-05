@@ -3,7 +3,7 @@
 import "./env";
 import { count } from "drizzle-orm";
 import { db } from "../src/db";
-import { coupons, homeSections, products, variants } from "../src/db/schema";
+import { coupons, homeSections, products, settings, variants } from "../src/db/schema";
 import { DEFAULT_SETTINGS, saveSettings } from "../src/lib/settings";
 import { upsertAdmin } from "./create-admin";
 
@@ -46,11 +46,13 @@ const CATALOG = [
 ];
 
 async function main() {
-  await saveSettings(DEFAULT_SETTINGS);
+  // Ajustes por defecto solo la primera vez; después se editan desde el panel.
+  const [{ s }] = await db.select({ s: count() }).from(settings);
+  if (s === 0) await saveSettings(DEFAULT_SETTINGS);
 
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
-  if (email && password) console.log(`Admin ${email}: ${await upsertAdmin(email, password)}.`);
+  if (email && password) console.log(`Admin ${email}: ${await upsertAdmin(email, password, "Administrador", true)}.`);
   else console.log("Sin ADMIN_EMAIL/ADMIN_PASSWORD en .env: no se creó administrador.");
 
   const [{ n }] = await db.select({ n: count() }).from(products);

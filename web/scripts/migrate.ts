@@ -1,9 +1,9 @@
 import "./env";
 import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
 import { migrate as migratePostgres } from "drizzle-orm/postgres-js/migrator";
-import { db } from "../src/db";
+import { databaseUrl, db } from "../src/db";
 
-const url = process.env.DATABASE_URL || "pglite:./.data/db";
+const url = databaseUrl();
 const migrationsFolder = "./drizzle";
 
 if (url.startsWith("pglite:")) {

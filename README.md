@@ -11,6 +11,7 @@ limitada y colaboraciones.
 | [`docs/02-proveedores.md`](docs/02-proveedores.md) | Rutas de producción, lista corta de proveedores, mensaje para cotizar, ficha técnica, pruebas de muestras y matriz de evaluación |
 | [`calculadora/index.html`](calculadora/index.html) | Calculadora de costo puesto en bodega, margen y precio sugerido; compara proveedores lado a lado |
 | [`web/`](web/README.md) | Tienda en línea: catálogo, carrito, checkout, cuentas y panel de administración |
+| [`docs/03-publicar-en-vercel.md`](docs/03-publicar-en-vercel.md) | Guía paso a paso para poner la tienda en línea con Vercel y Supabase |
 
 ## Cómo usar la calculadora
 

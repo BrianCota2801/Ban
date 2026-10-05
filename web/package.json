@@ -12,7 +12,8 @@
     "db:migrate": "tsx --conditions=react-server scripts/migrate.ts",
     "db:seed": "tsx --conditions=react-server scripts/seed.ts",
     "admin:create": "tsx --conditions=react-server scripts/create-admin.ts",
-    "setup": "npm run db:migrate && npm run db:seed"
+    "setup": "npm run db:migrate && npm run db:seed",
+    "vercel-build": "npm run db:migrate && npm run db:seed && next build"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

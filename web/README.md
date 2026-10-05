@@ -68,13 +68,17 @@ Entra al panel en <http://localhost:3000/admin> con el correo y contraseña de t
 
 ## Poner la tienda en internet
 
-Opción recomendada para empezar, con costo inicial bajo o nulo:
+**Guía paso a paso para no programadores:** [`docs/03-publicar-en-vercel.md`](../docs/03-publicar-en-vercel.md).
+Al publicar en Vercel, el comando `vercel-build` aplica migraciones, crea el admin (si no existe) y carga los productos
+de ejemplo (si la base está vacía) antes de compilar.
 
-1. **Base de datos:** crea un proyecto en [Neon](https://neon.tech) (Postgres administrado) y copia su URL.
-2. **Migraciones y admin:** en tu computadora, pon esa URL en `DATABASE_URL` del `.env` y corre `npm run setup`.
-   Si no quieres los productos de ejemplo, usa `npm run db:migrate && npm run admin:create`.
+Resumen técnico:
+
+1. **Base de datos:** proyecto en [Supabase](https://supabase.com) (o Neon); usa la URI del *Transaction pooler* como `DATABASE_URL`.
+   También se acepta `POSTGRES_URL`, que crea la integración de Supabase en Vercel.
+2. **Admin:** define `ADMIN_EMAIL` y `ADMIN_PASSWORD` en Vercel; se crea en la primera publicación.
 3. **Hosting:** importa el repositorio en [Vercel](https://vercel.com), con *Root Directory* = `web`.
-   Agrega las variables de entorno: `DATABASE_URL`, `SITE_URL` (tu dominio) y las de Stripe.
+   Agrega las variables de entorno. `SITE_URL` es opcional: sin ella se usa el dominio de producción de Vercel.
 4. **Dominio:** conecta tu dominio (`ban.mx` o el que registres) en Vercel.
 5. **Pagos:** en [Stripe](https://stripe.com/mx), activa tu cuenta y **OXXO** en *Payment methods*. Copia la
    *Secret key* a `STRIPE_SECRET_KEY`. Crea un webhook a `https://TU-DOMINIO/api/stripe/webhook` con los eventos
