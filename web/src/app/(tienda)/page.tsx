@@ -11,5 +11,12 @@ export default async function HomePage() {
       </div>
     );
   }
-  return sections.map((s) => <HomeSectionView key={s.id} section={s} />);
+  return (
+    <>
+      <h1 className="sr-only">BAN · Básicos que duran</h1>
+      {sections.map((s, i) => (
+        <HomeSectionView key={s.id} section={s} first={i === 0} />
+      ))}
+    </>
+  );
 }

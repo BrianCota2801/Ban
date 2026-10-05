@@ -4,7 +4,7 @@ import { PageHead, Pill, td, th } from "@/components/admin/ui";
 import { TeeArt } from "@/components/tee-art";
 import { db } from "@/db";
 import { productImages, products, variants } from "@/db/schema";
-import { FIT_LABEL } from "@/lib/catalog";
+import { FIT_LABEL, imageSrc } from "@/lib/catalog";
 import { money } from "@/lib/money";
 
 export const metadata = { title: "Productos" };
@@ -34,8 +34,8 @@ export default async function ProductsAdmin() {
                 <tr key={p.id} className="hover:bg-tile/50">
                   <td className={td}>
                     <Link href={`/admin/productos/${p.id}`} className="flex items-center gap-3 font-bold hover:underline">
-                      <span className="h-12 w-10 shrink-0 bg-tile">
-                        {img ? <img src={`/media/${img.mediaId}`} alt="" className="h-full w-full object-cover" /> : <TeeArt fit={p.fit} color={pv[0]?.colorHex ?? "#eee"} className="h-full w-full p-1" />}
+                      <span className="h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-tile">
+                        {img && imageSrc(img) ? <img src={imageSrc(img)!} alt="" className="h-full w-full object-cover" /> : <TeeArt fit={p.fit} color={pv[0]?.colorHex ?? "#eee"} className="h-full w-full p-1" />}
                       </span>
                       {p.name}
                     </Link>

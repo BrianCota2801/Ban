@@ -12,12 +12,14 @@ export function AddToCart({
   disabled,
   initialColor,
   onColorChange,
+  extra,
 }: {
   variants: V[];
   colors: { name: string; hex: string }[];
   disabled?: boolean;
   initialColor?: string;
   onColorChange?: (c: string) => void;
+  extra?: React.ReactNode;
 }) {
   const [color, setColor] = useState(initialColor ?? colors[0]?.name ?? "");
   const [size, setSize] = useState<string | null>(null);
@@ -45,9 +47,9 @@ export function AddToCart({
                 setSize(null);
                 onColorChange?.(c.name);
               }}
-              className={`h-9 w-9 border p-0.5 ${c.name === color ? "border-ink" : "border-transparent hover:border-line"}`}
+              className={`h-10 w-10 rounded-full border-2 p-0.5 ${c.name === color ? "border-ink" : "border-transparent hover:border-line"}`}
             >
-              <span className="block h-full w-full border border-black/10" style={{ background: c.hex }} />
+              <span className="block h-full w-full rounded-full border border-black/10" style={{ background: c.hex }} />
             </button>
           ))}
         </div>
@@ -70,7 +72,7 @@ export function AddToCart({
                 disabled={out}
                 aria-pressed={v.size === size}
                 onClick={() => setSize(v.size)}
-                className={`relative h-11 border text-sm font-bold ${
+                className={`r-btn relative h-11 border text-sm font-bold ${
                   v.size === size ? "border-ink bg-ink text-white" : "border-line hover:border-ink"
                 } disabled:cursor-not-allowed disabled:text-muted disabled:line-through`}
               >
@@ -86,9 +88,12 @@ export function AddToCart({
 
       <input type="hidden" name="variantId" value={selected?.id ?? ""} />
       <input type="hidden" name="quantity" value="1" />
-      <button type="submit" className="btn w-full" disabled={disabled || pending || !selected}>
-        {disabled ? "Disponible pronto" : pending ? "Agregando…" : selected ? "Agregar al carrito" : "Elige una talla"}
-      </button>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button type="submit" className="btn flex-1" disabled={disabled || pending || !selected}>
+          {disabled ? "Disponible pronto" : pending ? "Agregando…" : selected ? "Agregar al carrito" : "Elige una talla"}
+        </button>
+        {extra}
+      </div>
       {state?.message && (
         <p role="status" className={state.ok ? "text-sm font-bold text-ok" : "error"}>
           {state.message}{" "}

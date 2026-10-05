@@ -106,49 +106,65 @@ async function main() {
     SIZES.map((size, i) => ({ productId: drop.id, color: "Café", colorHex: "#5b4636", size, sku: `BAN-D01-CAF-${size}`, stock: 6, sortOrder: i })),
   );
 
+  const slide = (o: Record<string, unknown>) => ({
+    eyebrow: "", heading: "", subheading: "", ctaLabel: "", ctaHref: "", media: "", mobileMedia: "",
+    background: "#e9e7e2", tone: "dark", position: "bottom-left", overlay: 0, ...o,
+  });
+  const style = { bg: "", spacing: "md", width: "contained" };
   await db.insert(homeSections).values([
     {
       type: "hero",
       sortOrder: 10,
       data: {
-        eyebrow: "Core · Heavyweight 250 g/m²",
-        heading: "Básicos que duran",
-        subheading: "Playeras pesadas de algodón peinado. Oversize, regular y boxy.",
-        ctaLabel: "Comprar playeras",
-        ctaHref: "/productos",
-        imageId: null,
-        background: "#e9e7e2",
-        tone: "dark",
-        align: "left",
-      },
-    },
-    { type: "promo_strip", sortOrder: 20, data: { text: "10 % en tu primera compra con el código BIENVENIDA", href: "/productos", tone: "black" } },
-    {
-      type: "fit_tiles",
-      sortOrder: 30,
-      data: {
-        heading: "Compra por corte",
-        tiles: [
-          { label: "Oversize", href: "/productos?corte=oversize", imageId: null },
-          { label: "Regular", href: "/productos?corte=regular", imageId: null },
-          { label: "Boxy", href: "/productos?corte=boxy", imageId: null },
+        height: "large",
+        autoplay: 6,
+        inset: false,
+        slides: [
+          slide({ eyebrow: "Core · Heavyweight 250 g/m²", heading: "Básicos que duran", subheading: "Playeras pesadas de algodón peinado. Oversize, regular y boxy.", ctaLabel: "Comprar playeras", ctaHref: "/productos" }),
+          slide({ eyebrow: "Drop 01", heading: "Café tostado", subheading: "Edición limitada. Sin resurtido.", ctaLabel: "Ver el drop", ctaHref: "/drops", background: "#5b4636", tone: "light" }),
         ],
       },
     },
-    { type: "product_grid", sortOrder: 40, data: { heading: "Core", mode: "collection", collection: "core", productIds: [], fit: "oversize", limit: 8 } },
+    { type: "promo_strip", sortOrder: 20, data: { text: "10 % en tu primera compra con el código BIENVENIDA", href: "/productos", tone: "black", marquee: true } },
+    {
+      type: "category_grid",
+      sortOrder: 30,
+      data: {
+        ...style,
+        heading: "Buscar por categoría",
+        shape: "rounded",
+        columns: 6,
+        items: [
+          { label: "Oversize", href: "/productos?corte=oversize", image: "" },
+          { label: "Regular", href: "/productos?corte=regular", image: "" },
+          { label: "Boxy", href: "/productos?corte=boxy", image: "" },
+          { label: "Drops", href: "/drops", image: "" },
+          { label: "Todo", href: "/productos", image: "" },
+          { label: "Favoritos", href: "/favoritos", image: "" },
+        ],
+      },
+    },
+    { type: "product_grid", sortOrder: 40, data: { ...style, heading: "Core", subheading: "Siempre disponibles", mode: "collection", collection: "core", productIds: [], fit: "oversize", limit: 8, layout: "carousel", columns: 4 } },
     {
       type: "editorial",
       sortOrder: 50,
       data: {
+        ...style,
+        bg: "#f3f3f1",
         heading: "Hecha para durar",
         body: "250 g/m² de algodón peinado, cuello reforzado y tela preencogida.\nUna playera que se ve igual después de cincuenta lavadas.",
         ctaLabel: "Cuánto cuesta hacerla",
         ctaHref: "/ayuda/transparencia",
-        imageId: null,
-        imageSide: "left",
+        media: "",
+        mediaSide: "left",
+        ratio: "landscape",
       },
     },
-    { type: "product_grid", sortOrder: 60, data: { heading: "Próximo drop", mode: "collection", collection: "drop", productIds: [], fit: "oversize", limit: 4 } },
+    {
+      type: "countdown",
+      sortOrder: 60,
+      data: { eyebrow: "Próximo drop", heading: "Drop 01 · Café", text: "Oversize de 250 g/m² en café tostado. Pocas piezas.", productId: drop.id, until: "", media: "", ctaLabel: "Avísame", ctaHref: "/drops", tone: "light", background: "#2a211b" },
+    },
   ]);
 
   await db.insert(coupons).values({ code: "BIENVENIDA", kind: "percent", value: 10, minSubtotal: 0 });

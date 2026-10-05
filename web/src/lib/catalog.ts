@@ -1,7 +1,8 @@
 import "server-only";
-import { and, asc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { productImages, products, variants, type Fit, type Product, type Variant } from "@/db/schema";
+import { mediaSrc } from "./media-url";
 
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 export const FIT_LABEL: Record<Fit, string> = { oversize: "Oversize", regular: "Regular", boxy: "Boxy" };
@@ -13,17 +14,23 @@ export type ProductCard = Pick<
   "id" | "slug" | "name" | "fit" | "collection" | "price" | "compareAtPrice" | "gsm" | "releaseAt"
 > & {
   colors: ColorOption[];
-  imageId: string | null;
+  image: string | null;
   soldOut: boolean;
   upcoming: boolean;
 };
 
 export type ProductDetail = Product & {
   variants: Variant[];
-  images: { mediaId: string; color: string | null }[];
+  images: { src: string; color: string | null }[];
   colors: ColorOption[];
   upcoming: boolean;
 };
+
+/** Foto de producto guardada en la base (mediaId) o como enlace (url). */
+export function imageSrc(i: { mediaId: string | null; url: string | null } | undefined): string | null {
+  if (!i) return null;
+  return mediaSrc(i.url) ?? mediaSrc(i.mediaId);
+}
 
 export function uniqueColors(vs: Pick<Variant, "color" | "colorHex">[]): ColorOption[] {
   const seen = new Map<string, string>();
@@ -59,7 +66,7 @@ async function attach(rows: Product[]): Promise<ProductCard[]> {
       gsm: p.gsm,
       releaseAt: p.releaseAt,
       colors: uniqueColors(pv),
-      imageId: imgs.find((i) => i.productId === p.id)?.mediaId ?? null,
+      image: imageSrc(imgs.find((i) => i.productId === p.id)),
       soldOut: pv.length > 0 && pv.every((v) => v.stock <= 0),
       upcoming: !!p.releaseAt && p.releaseAt.getTime() > now,
     };
@@ -91,11 +98,12 @@ export async function getProductBySlug(slug: string, includeDrafts = false): Pro
   const vs = sortBySize(
     await db.select().from(variants).where(eq(variants.productId, p.id)).orderBy(asc(variants.sortOrder)),
   );
-  const imgs = await db
-    .select({ mediaId: productImages.mediaId, color: productImages.color })
-    .from(productImages)
-    .where(eq(productImages.productId, p.id))
-    .orderBy(asc(productImages.sortOrder));
+  const imgs = (
+    await db.select().from(productImages).where(eq(productImages.productId, p.id)).orderBy(asc(productImages.sortOrder))
+  ).flatMap((i) => {
+    const src = imageSrc(i);
+    return src ? [{ src, color: i.color }] : [];
+  });
   return {
     ...p,
     variants: vs,
@@ -103,4 +111,21 @@ export async function getProductBySlug(slug: string, includeDrafts = false): Pro
     colors: uniqueColors(vs),
     upcoming: !!p.releaseAt && p.releaseAt.getTime() > Date.now(),
   };
+}
+
+export async function searchProducts(q: string) {
+  const term = q.trim().slice(0, 60);
+  if (term.length < 2) return [];
+  const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const rows = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.status, "active"), or(ilike(products.name, pattern), ilike(products.description, pattern), ilike(products.composition, pattern))))
+    .orderBy(asc(products.sortOrder))
+    .limit(48);
+  return attach(rows);
+}
+
+export async function listProductsByIds(ids: string[]) {
+  return listProducts({ ids });
 }

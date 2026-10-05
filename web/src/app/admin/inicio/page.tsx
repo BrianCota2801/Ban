@@ -10,7 +10,8 @@ export const metadata = { title: "Página principal" };
 
 function summary(s: Awaited<ReturnType<typeof getAllSections>>[number]) {
   const d = sectionData<Record<string, unknown>>(s);
-  return String(d.heading || d.text || "");
+  const slides = d.slides as { heading?: string }[] | undefined;
+  return String(d.heading || d.text || slides?.[0]?.heading || "");
 }
 
 export default async function HomeAdmin() {

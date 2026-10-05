@@ -1,14 +1,16 @@
 import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addProductImages, addVariants, deleteProduct, deleteProductImage, deleteVariant, updateStock } from "@/app/admin/actions";
+import { addVariants, deleteProduct, deleteProductImage, deleteVariant, moveProductImage, updateStock } from "@/app/admin/actions";
 import { ActionForm } from "@/components/admin/action-form";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { ProductForm } from "@/components/admin/product-form";
 import { Card, Input, PageHead, td, th } from "@/components/admin/ui";
 import { db } from "@/db";
 import { productImages, products, variants } from "@/db/schema";
-import { SIZES, sortBySize, uniqueColors } from "@/lib/catalog";
+import { imageSrc, SIZES, sortBySize, uniqueColors } from "@/lib/catalog";
+import { isVideo } from "@/lib/media-url";
+import { ProductImageUploader } from "@/components/admin/product-images";
 
 export const metadata = { title: "Editar producto" };
 
@@ -110,38 +112,41 @@ export default async function EditProduct({ params, searchParams }: { params: Pr
             </div>
           </Card>
 
-          <Card title="Fotos" help="La primera foto es la portada. Asigna un color para que cambie al elegirlo en la tienda.">
+          <Card title="Fotos y videos" help="La primera es la portada. Asigna un color para que la galería cambie al elegirlo en la tienda.">
             {imgs.length > 0 && (
-              <div className="mb-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {imgs.map((i) => (
-                  <figure key={i.id} className="grid gap-1">
-                    <img src={`/media/${i.mediaId}`} alt="" className="aspect-[4/5] w-full border border-line object-cover" />
-                    <figcaption className="flex items-center justify-between text-xs">
-                      <span className="truncate text-muted">{i.color ?? "Todos"}</span>
-                      <form action={deleteProductImage}>
-                        <input type="hidden" name="id" value={i.id} />
-                        <ConfirmButton message="¿Quitar esta foto?" className="text-muted hover:text-sale">Quitar</ConfirmButton>
-                      </form>
-                    </figcaption>
-                  </figure>
-                ))}
+              <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {imgs.map((i, k) => {
+                  const src = imageSrc(i);
+                  return (
+                    <figure key={i.id} className="grid gap-1.5">
+                      <div className="aspect-[4/5] overflow-hidden rounded-xl border border-line bg-tile">
+                        {src && (isVideo(src) ? <video src={src} muted loop autoPlay playsInline className="h-full w-full object-cover" /> : <img src={src} alt="" className="h-full w-full object-cover" />)}
+                      </div>
+                      <figcaption className="flex items-center justify-between gap-1 text-xs">
+                        <span className="truncate text-muted">{k === 0 ? "Portada · " : ""}{i.color ?? "Todos"}</span>
+                        <span className="flex items-center gap-1">
+                          <form action={moveProductImage}>
+                            <input type="hidden" name="id" value={i.id} />
+                            <input type="hidden" name="dir" value="up" />
+                            <button disabled={k === 0} aria-label="Mover antes" className="px-1 text-muted hover:text-ink disabled:opacity-20">◀</button>
+                          </form>
+                          <form action={moveProductImage}>
+                            <input type="hidden" name="id" value={i.id} />
+                            <input type="hidden" name="dir" value="down" />
+                            <button disabled={k === imgs.length - 1} aria-label="Mover después" className="px-1 text-muted hover:text-ink disabled:opacity-20">▶</button>
+                          </form>
+                          <form action={deleteProductImage}>
+                            <input type="hidden" name="id" value={i.id} />
+                            <ConfirmButton message="¿Quitar esta foto?" className="px-1 text-muted hover:text-sale">✕</ConfirmButton>
+                          </form>
+                        </span>
+                      </figcaption>
+                    </figure>
+                  );
+                })}
               </div>
             )}
-            <ActionForm action={addProductImages} submitLabel="Subir fotos">
-              <input type="hidden" name="productId" value={p.id} />
-              <div className="field">
-                <label htmlFor="f-images" className="label">Fotos</label>
-                <input id="f-images" type="file" name="images" multiple accept="image/jpeg,image/png,image/webp,image/avif" className="text-sm file:mr-3 file:border file:border-ink file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase" />
-                <p className="help">Vertical 4:5, fondo gris claro. Máximo 5 MB cada una.</p>
-              </div>
-              <div className="field">
-                <label htmlFor="f-color" className="label">Color de estas fotos</label>
-                <select id="f-color" name="color" className="input" defaultValue="">
-                  <option value="">Todos los colores</option>
-                  {colors.map((c) => <option key={c.name}>{c.name}</option>)}
-                </select>
-              </div>
-            </ActionForm>
+            <ProductImageUploader productId={p.id} colors={colors.map((c) => c.name)} />
           </Card>
         </div>
       </div>

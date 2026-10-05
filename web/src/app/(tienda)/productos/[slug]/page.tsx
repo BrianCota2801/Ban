@@ -6,6 +6,7 @@ import { ProductGrid } from "@/components/product-card";
 import { ProductView } from "@/components/product-view";
 import { FIT_LABEL, getProductBySlug, listProducts } from "@/lib/catalog";
 import { money } from "@/lib/money";
+import { getFavoriteIds } from "@/lib/favorites";
 import { getSettings } from "@/lib/settings";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -16,14 +17,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: p.name,
     description: p.description.slice(0, 160),
-    openGraph: p.images[0] ? { images: [`/media/${p.images[0].mediaId}`] } : undefined,
+    openGraph: p.images[0] ? { images: [p.images[0].src] } : undefined,
   };
 }
 
 export default async function ProductPage({ params }: Props) {
   const p = await getProductBySlug((await params).slug);
   if (!p) notFound();
-  const [related, settings] = await Promise.all([listProducts(), getSettings()]);
+  const [related, settings, favs] = await Promise.all([listProducts(), getSettings(), getFavoriteIds()]);
   const onSale = p.compareAtPrice != null && p.compareAtPrice > p.price;
   const soldOut = p.variants.length > 0 && p.variants.every((v) => v.stock <= 0);
 
@@ -44,6 +45,8 @@ export default async function ProductPage({ params }: Props) {
       </nav>
 
       <ProductView
+        productId={p.id}
+        favorite={favs.has(p.id)}
         name={p.name}
         fit={p.fit}
         images={p.images}
@@ -61,7 +64,7 @@ export default async function ProductPage({ params }: Props) {
           <span className="ml-2 text-xs font-normal text-muted">IVA incluido</span>
         </p>
         {p.upcoming && p.releaseAt && (
-          <div className="mt-6 bg-ink p-5 text-white">
+          <div className="r-card mt-6 bg-ink p-5 text-white">
             <p className="eyebrow mb-3 text-white/60">Sale a la venta en</p>
             <Countdown to={p.releaseAt.toISOString()} compact />
           </div>
@@ -80,7 +83,7 @@ export default async function ProductPage({ params }: Props) {
         {specs.length > 0 && (
           <div>
             <h2 className="h-section">Ficha de la prenda</h2>
-            <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
+            <dl className="r-card mt-4 divide-y divide-line overflow-hidden bg-tile px-5 text-sm">
               {specs.map(([k, v]) => (
                 <div key={k} className="grid grid-cols-[9rem_1fr] gap-4 py-3">
                   <dt className="font-bold">{k}</dt>

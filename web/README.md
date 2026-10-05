@@ -30,6 +30,8 @@ Entra al panel en <http://localhost:3000/admin> con el correo y contraseña de t
 | Catálogo con filtro por corte y orden por precio | `/productos`, `/productos?corte=oversize` |
 | Producto: fotos por color, tallas, inventario, ficha de la prenda | `/productos/[slug]` |
 | Drops con cuenta regresiva y lista de aviso | `/drops` |
+| Favoritos (con o sin cuenta; se guardan en la cuenta al iniciar sesión) | `/favoritos` |
+| Búsqueda | `/buscar?q=` |
 | Carrito con cupones y barra de envío gratis | `/carrito` |
 | Checkout con dirección mexicana y pago con Stripe | `/checkout` |
 | Confirmación y seguimiento del pedido (con número de guía) | `/pedido/[id]` |
@@ -38,8 +40,15 @@ Entra al panel en <http://localhost:3000/admin> con el correo y contraseña de t
 
 ### Panel de administración (`/admin`)
 - **Resumen:** ventas del mes, pedidos por enviar, pendientes de pago, suscriptores, inventario bajo.
-- **Página principal:** agrega, ordena, oculta o programa por fecha bloques de *banner*, *franja de promoción*,
-  *rejilla de productos*, *accesos por corte* y *texto con imagen*. Con vista previa.
+- **Página principal:** agrega, ordena, oculta o programa por fecha estos bloques, con vista previa:
+  - *Banner / carrusel*: varias diapositivas con foto o **video**, versión para celular, posición del texto,
+    oscurecido, altura y cambio automático con pausa.
+  - *Franja de promoción*: fija o en movimiento.
+  - *Productos*: cuadrícula o carrusel deslizable, de 2 a 5 por fila.
+  - *Categorías con imagen*: íconos redondos o con esquinas, hasta 12.
+  - *Tarjetas grandes*, *texto con foto o video* y *cuenta regresiva* para drops.
+  - Cada bloque con color de fondo, espaciado y ancho.
+- **Diseño:** esquinas redondeadas, suaves o rectas y color de marca, desde Ajustes.
 - **Productos:** alta y edición, colores y tallas con inventario, fotos por color, borrador/publicado/archivado,
   fecha de lanzamiento para drops.
 - **Pedidos:** filtro por estado, cambio de estado, paquetería y número de guía. Cancelar regresa el inventario.
@@ -60,7 +69,9 @@ Entra al panel en <http://localhost:3000/admin> con el correo y contraseña de t
 - Las acciones del servidor rechazan peticiones de otros dominios (protección CSRF de Next.js) y las cookies son `SameSite`.
 - Precios, descuentos e inventario se calculan siempre en el servidor; el navegador no puede alterarlos.
   El inventario se descuenta dentro de una transacción para que dos personas no compren la última pieza.
-- Imágenes: se valida el tipo real del archivo (no la extensión), máximo 5 MB, y se sirven con `nosniff` y CSP `sandbox`.
+- Imágenes en la base: se valida el tipo real del archivo (no la extensión), máximo 4 MB, y se sirven con `nosniff` y CSP `sandbox`.
+- Fotos y videos en Supabase Storage: el navegador sube directo con una URL firmada de un solo uso que genera el
+  servidor solo para admins; la llave `service_role` nunca sale del servidor.
 - Webhook de Stripe con verificación de firma HMAC y tolerancia de 5 minutos.
 - Cabeceras: `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS en producción.
 - Bitácora de acciones de admin en la tabla `audit_log`.

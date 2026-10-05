@@ -21,12 +21,13 @@ import {
 import { audit, requireAdmin } from "@/lib/auth";
 import { parseLocalDateTime } from "@/lib/dates";
 import { fieldErrors, str, type FormState } from "@/lib/forms";
-import { SECTION_DEFAULTS, sectionData } from "@/lib/home";
-import { saveImage, UploadError } from "@/lib/media";
+import { MAX_ITEMS, MAX_SLIDES, SECTION_DEFAULTS } from "@/lib/home";
 import { parsePesos } from "@/lib/money";
 import { slugify } from "@/lib/slug";
 import { cancelOrder } from "@/lib/orders";
+import { IMAGE_TYPES, MAX_LOCAL_MB, mediaSrc } from "@/lib/media-url";
 import { saveSettings } from "@/lib/settings";
+import { createSignedUpload, storageEnabled } from "@/lib/storage";
 
 function refreshStore() {
   revalidatePath("/", "layout");
@@ -41,11 +42,6 @@ function hex(v: string, fallback: string) {
   return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback;
 }
 
-/** Imagen de un formulario: nueva subida, quitar la actual o conservarla. */
-async function imageField(fd: FormData, name: string, current: string | null) {
-  if (fd.get(`${name}Remove`) === "on") return null;
-  return (await saveImage(fd.get(name))) ?? current;
-}
 
 // ─── Página principal ───────────────────────────────────────────────────────
 
@@ -67,19 +63,14 @@ export async function saveSection(_: FormState, fd: FormData): Promise<FormState
   const [s] = await db.select().from(homeSections).where(eq(homeSections.id, id)).limit(1);
   if (!s) return { ok: false, message: "La sección ya no existe." };
 
-  try {
-    const data = await readSectionData(s, fd);
-    const startsAt = parseLocalDateTime(fd.get("startsAt"));
-    const endsAt = parseLocalDateTime(fd.get("endsAt"));
-    if (startsAt && endsAt && endsAt <= startsAt) return { ok: false, message: "La fecha de fin debe ser después del inicio." };
-    await db
-      .update(homeSections)
-      .set({ data, title: str(fd, "title").slice(0, 120), visible: fd.get("visible") === "on", startsAt, endsAt, updatedAt: new Date() })
-      .where(eq(homeSections.id, id));
-  } catch (e) {
-    if (e instanceof UploadError) return { ok: false, message: e.message };
-    throw e;
-  }
+  const data = await readSectionData(s, fd);
+  const startsAt = parseLocalDateTime(fd.get("startsAt"));
+  const endsAt = parseLocalDateTime(fd.get("endsAt"));
+  if (startsAt && endsAt && endsAt <= startsAt) return { ok: false, message: "La fecha de fin debe ser después del inicio." };
+  await db
+    .update(homeSections)
+    .set({ data, title: str(fd, "title").slice(0, 120), visible: fd.get("visible") === "on", startsAt, endsAt, updatedAt: new Date() })
+    .where(eq(homeSections.id, id));
   await audit(admin.id, "home.section_saved", { id });
   refreshStore();
   revalidatePath("/admin/inicio");
@@ -88,61 +79,112 @@ export async function saveSection(_: FormState, fd: FormData): Promise<FormState
 
 async function readSectionData(s: HomeSection, fd: FormData): Promise<Record<string, unknown>> {
   const t = (k: string, max = 300) => str(fd, k).slice(0, max);
+  const media = (k: string) => mediaSrc(str(fd, k)) ?? "";
+  const pick = <T extends string>(k: string, options: readonly T[], fallback: T): T =>
+    options.includes(fd.get(k) as T) ? (fd.get(k) as T) : fallback;
+  const style = () => ({
+    bg: fd.get("bgNone") === "on" ? "" : hex(t("bg"), ""),
+    spacing: pick("spacing", ["none", "sm", "md", "lg"] as const, "md"),
+    width: pick("width", ["contained", "full"] as const, "contained"),
+  });
+
   switch (s.type) {
     case "hero": {
-      const cur = sectionData<{ imageId: string | null }>(s);
+      const slides = [];
+      for (let i = 0; i < MAX_SLIDES; i++) {
+        if (!fd.has(`s${i}_heading`) || fd.get(`s${i}_remove`) === "on") continue;
+        const slide = {
+          eyebrow: t(`s${i}_eyebrow`, 60),
+          heading: t(`s${i}_heading`, 120),
+          subheading: t(`s${i}_subheading`, 240),
+          ctaLabel: t(`s${i}_ctaLabel`, 40),
+          ctaHref: safeHref(t(`s${i}_ctaHref`)),
+          media: media(`s${i}_media`),
+          mobileMedia: media(`s${i}_mobileMedia`),
+          background: hex(t(`s${i}_background`), "#e9e7e2"),
+          tone: pick(`s${i}_tone`, ["light", "dark"] as const, "dark"),
+          position: pick(`s${i}_position`, ["bottom-left", "center-left", "center", "bottom-center"] as const, "bottom-left"),
+          overlay: Math.min(70, Math.max(0, Number(fd.get(`s${i}_overlay`)) || 0)),
+          order: Number(fd.get(`s${i}_order`)) || i + 1,
+        };
+        if (slide.heading || slide.media || slide.mobileMedia) slides.push(slide);
+      }
+      slides.sort((a, b) => a.order - b.order);
       return {
-        eyebrow: t("eyebrow", 60),
-        heading: t("heading", 120),
-        subheading: t("subheading", 240),
-        ctaLabel: t("ctaLabel", 40),
-        ctaHref: safeHref(t("ctaHref")),
-        background: hex(t("background"), "#e9e7e2"),
-        tone: fd.get("tone") === "light" ? "light" : "dark",
-        align: fd.get("align") === "center" ? "center" : "left",
-        imageId: await imageField(fd, "image", cur.imageId),
+        slides: slides.map(({ order, ...rest }) => (void order, rest)),
+        height: pick("height", ["full", "large", "medium", "small"] as const, "large"),
+        autoplay: Math.min(30, Math.max(0, Number(fd.get("autoplay")) || 0)),
+        inset: fd.get("inset") === "on",
       };
     }
     case "promo_strip":
       return {
         text: t("text", 160),
         href: safeHref(t("href")),
-        tone: z.enum(["black", "red", "gray"]).catch("black").parse(fd.get("tone")),
+        tone: pick("tone", ["black", "red", "gray", "brand"] as const, "black"),
+        marquee: fd.get("marquee") === "on",
       };
     case "product_grid":
       return {
+        ...style(),
         heading: t("heading", 80),
-        mode: z.enum(["all", "manual", "collection", "fit"]).catch("all").parse(fd.get("mode")),
+        subheading: t("subheading", 160),
+        mode: pick("mode", ["all", "manual", "collection", "fit"] as const, "all"),
         productIds: fd.getAll("productIds").map(String).filter((v) => /^[0-9a-f-]{36}$/i.test(v)),
         collection: fd.get("collection") === "drop" ? "drop" : "core",
         fit: z.enum(FITS).catch("oversize").parse(fd.get("fit")),
         limit: Math.min(24, Math.max(1, Number(fd.get("limit")) || 8)),
+        layout: fd.get("layout") === "carousel" ? "carousel" : "grid",
+        columns: [2, 3, 4, 5].includes(Number(fd.get("columns"))) ? Number(fd.get("columns")) : 4,
       };
+    case "category_grid": {
+      const items = [];
+      for (let i = 0; i < MAX_ITEMS; i++) {
+        const label = t(`c${i}_label`, 40);
+        if (!label || fd.get(`c${i}_remove`) === "on") continue;
+        items.push({ label, href: safeHref(t(`c${i}_href`)) || "/productos", image: media(`c${i}_image`) });
+      }
+      return {
+        ...style(),
+        heading: t("heading", 80),
+        items,
+        shape: pick("shape", ["circle", "rounded", "square"] as const, "rounded"),
+        columns: [3, 4, 6].includes(Number(fd.get("columns"))) ? Number(fd.get("columns")) : 6,
+      };
+    }
     case "fit_tiles": {
-      const cur = sectionData<{ tiles: { imageId: string | null }[] }>(s);
       const tiles = [];
       for (let i = 0; i < 4; i++) {
-        const label = t(`tile${i}Label`, 40);
+        const label = t(`t${i}_label`, 40);
         if (!label) continue;
-        tiles.push({
-          label,
-          href: safeHref(t(`tile${i}Href`)) || "/productos",
-          imageId: await imageField(fd, `tile${i}Image`, cur.tiles[i]?.imageId ?? null),
-        });
+        tiles.push({ label, href: safeHref(t(`t${i}_href`)) || "/productos", image: media(`t${i}_image`) });
       }
-      return { heading: t("heading", 80), tiles };
+      return { ...style(), heading: t("heading", 80), tiles };
     }
-    case "editorial": {
-      const cur = sectionData<{ imageId: string | null }>(s);
+    case "editorial":
       return {
+        ...style(),
         heading: t("heading", 120),
         body: t("body", 1200),
         ctaLabel: t("ctaLabel", 40),
         ctaHref: safeHref(t("ctaHref")),
-        imageSide: fd.get("imageSide") === "left" ? "left" : "right",
-        imageId: await imageField(fd, "image", cur.imageId),
+        media: media("media"),
+        mediaSide: fd.get("mediaSide") === "left" ? "left" : "right",
+        ratio: pick("ratio", ["landscape", "portrait", "square"] as const, "landscape"),
       };
-    }
+    case "countdown":
+      return {
+        eyebrow: t("eyebrow", 60),
+        heading: t("heading", 120),
+        text: t("text", 300),
+        productId: /^[0-9a-f-]{36}$/i.test(t("productId")) ? t("productId") : "",
+        until: parseLocalDateTime(fd.get("until"))?.toISOString() ?? "",
+        media: media("media"),
+        ctaLabel: t("ctaLabel", 40),
+        ctaHref: safeHref(t("ctaHref")),
+        tone: fd.get("tone") === "dark" ? "dark" : "light",
+        background: hex(t("background"), "#111111"),
+      };
   }
 }
 
@@ -313,24 +355,29 @@ export async function addProductImages(_: FormState, fd: FormData): Promise<Form
   await requireAdmin();
   const productId = str(fd, "productId");
   const color = str(fd, "color") || null;
-  const files = fd.getAll("images");
-  if (!files.some((f) => f instanceof File && f.size > 0)) return { ok: false, message: "Elige una o más fotos." };
+  const urls = fd.getAll("urls").map((v) => mediaSrc(String(v))).filter((v): v is string => !!v);
+  if (!urls.length) return { ok: false, message: "Sube al menos una foto." };
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${productImages.sortOrder}), 0)` })
     .from(productImages)
     .where(eq(productImages.productId, productId));
-  let n = 0;
-  try {
-    for (const f of files) {
-      const mediaId = await saveImage(f);
-      if (mediaId) await db.insert(productImages).values({ productId, mediaId, color, sortOrder: Number(max) + ++n });
-    }
-  } catch (e) {
-    if (e instanceof UploadError) return { ok: false, message: e.message };
-    throw e;
-  }
+  await db.insert(productImages).values(urls.map((url, i) => ({ productId, url, color, sortOrder: Number(max) + i + 1 })));
   refreshStore();
-  return { ok: true, message: n === 1 ? "Foto agregada." : `${n} fotos agregadas.` };
+  return { ok: true, message: urls.length === 1 ? "Foto agregada." : `${urls.length} fotos agregadas.` };
+}
+
+export async function moveProductImage(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  const [img] = await db.select().from(productImages).where(eq(productImages.id, id)).limit(1);
+  if (!img) return;
+  const all = await db.select().from(productImages).where(eq(productImages.productId, img.productId)).orderBy(asc(productImages.sortOrder));
+  const i = all.findIndex((x) => x.id === id);
+  const j = fd.get("dir") === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= all.length) return;
+  [all[i], all[j]] = [all[j], all[i]];
+  for (const [k, x] of all.entries()) await db.update(productImages).set({ sortOrder: k + 1 }).where(eq(productImages.id, x.id));
+  refreshStore();
 }
 
 export async function deleteProductImage(fd: FormData) {
@@ -435,8 +482,34 @@ export async function saveStoreSettings(_: FormState, fd: FormData): Promise<For
     contactEmail: email,
     instagram: /^https:\/\//.test(str(fd, "instagram")) ? str(fd, "instagram") : "",
     tiktok: /^https:\/\//.test(str(fd, "tiktok")) ? str(fd, "tiktok") : "",
+    corners: (["round", "soft", "square"] as const).find((c) => c === fd.get("corners")) ?? "round",
+    brandColor: hex(str(fd, "brandColor"), "#111111"),
   });
   await audit(admin.id, "settings.saved");
   refreshStore();
   return { ok: true, message: "Ajustes guardados." };
+}
+
+// ─── Subidas de fotos y videos ──────────────────────────────────────────────
+
+export type UploadPlan =
+  | { mode: "supabase"; signedUrl: string; publicUrl: string }
+  | { mode: "local" }
+  | { mode: "error"; message: string };
+
+/** El navegador pregunta cómo subir un archivo: directo a Supabase Storage o, sin Storage, a la base (solo fotos). */
+export async function prepareUpload(type: string, size: number): Promise<UploadPlan> {
+  await requireAdmin();
+  if (!storageEnabled()) {
+    if (!IMAGE_TYPES.includes(type))
+      return { mode: "error", message: "Para subir videos conecta Supabase Storage (ver Ajustes). Mientras, pega un enlace al video." };
+    if (size > MAX_LOCAL_MB * 1024 * 1024)
+      return { mode: "error", message: `Sin Supabase Storage las fotos deben pesar menos de ${MAX_LOCAL_MB} MB.` };
+    return { mode: "local" };
+  }
+  try {
+    return { mode: "supabase", ...(await createSignedUpload(type, size)) };
+  } catch (e) {
+    return { mode: "error", message: e instanceof Error ? e.message : "No se pudo preparar la subida." };
+  }
 }

@@ -104,7 +104,9 @@ export const productImages = pgTable(
   {
     id: serial("id").primaryKey(),
     productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-    mediaId: uuid("media_id").notNull().references(() => media.id, { onDelete: "cascade" }),
+    // Foto guardada en la base (mediaId) o enlace a Supabase Storage u otro servidor (url).
+    mediaId: uuid("media_id").references(() => media.id, { onDelete: "cascade" }),
+    url: text("url"),
     color: text("color"),
     sortOrder: integer("sort_order").notNull().default(0),
   },
@@ -128,7 +130,7 @@ export const variants = pgTable(
 
 // ─── Página principal, promociones y ajustes ────────────────────────────────
 
-export const SECTION_TYPES = ["hero", "promo_strip", "product_grid", "fit_tiles", "editorial"] as const;
+export const SECTION_TYPES = ["hero", "promo_strip", "product_grid", "category_grid", "fit_tiles", "editorial", "countdown"] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
 export const homeSections = pgTable("home_sections", {
@@ -172,6 +174,18 @@ export const waitlist = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("waitlist_email_source_idx").on(t.email, t.source)],
+);
+
+// Favoritos: owner es "u:<id de usuario>" o "g:<id de invitado en cookie>".
+export const favorites = pgTable(
+  "favorites",
+  {
+    id: serial("id").primaryKey(),
+    owner: text("owner").notNull(),
+    productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("favorites_owner_product_idx").on(t.owner, t.productId)],
 );
 
 // ─── Carrito y pedidos ──────────────────────────────────────────────────────

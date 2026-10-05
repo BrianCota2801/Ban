@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { cartItems, carts, coupons, productImages, products, variants } from "@/db/schema";
 import { getCurrentUser } from "./auth";
+import { imageSrc } from "./catalog";
 import { computeTotals, type Totals } from "./pricing";
 import { getSettings } from "./settings";
 
@@ -24,7 +25,7 @@ export type CartLine = {
   sku: string;
   unitPrice: number;
   stock: number;
-  imageId: string | null;
+  image: string | null;
   purchasable: boolean;
 };
 
@@ -83,9 +84,9 @@ export async function loadCart(): Promise<Cart> {
     sku: r.sku,
     unitPrice: r.unitPrice,
     stock: r.stock,
-    imageId:
-      (imgs.find((i) => i.productId === r.productId && i.color === r.color) ?? imgs.find((i) => i.productId === r.productId))
-        ?.mediaId ?? null,
+    image: imageSrc(
+      imgs.find((i) => i.productId === r.productId && i.color === r.color) ?? imgs.find((i) => i.productId === r.productId),
+    ),
     purchasable: r.status === "active" && !(r.releaseAt && r.releaseAt.getTime() > now) && r.stock >= r.quantity,
   }));
 

@@ -30,9 +30,9 @@ export default async function CartPage() {
         <ul className="divide-y divide-line border-y border-line">
           {cart.lines.map((l) => (
             <li key={l.itemId} className="grid grid-cols-[96px_1fr] gap-4 py-5 sm:grid-cols-[120px_1fr_auto]">
-              <Link href={`/productos/${l.slug}`} className="aspect-[4/5] bg-tile">
-                {l.imageId ? (
-                  <img src={`/media/${l.imageId}`} alt="" className="h-full w-full object-cover" />
+              <Link href={`/productos/${l.slug}`} className="r-card aspect-[4/5] overflow-hidden bg-tile">
+                {l.image ? (
+                  <img src={l.image} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <TeeArt fit={l.fit} color={l.colorHex} className="h-full w-full p-3" />
                 )}
@@ -80,7 +80,7 @@ export default async function CartPage() {
           ))}
         </ul>
 
-        <aside className="h-fit border border-line p-6 lg:sticky lg:top-24">
+        <aside className="r-card h-fit border border-line p-6 lg:sticky lg:top-24">
           <h2 className="label">Resumen</h2>
           <dl className="mt-4 grid gap-2 text-sm">
             <Row k="Subtotal" v={money(cart.totals.subtotal)} />
@@ -88,7 +88,7 @@ export default async function CartPage() {
             <Row k="Envío" v={cart.totals.shipping === 0 ? "Gratis" : money(cart.totals.shipping)} />
           </dl>
           {cart.totals.freeShippingRemaining > 0 && (
-            <p className="mt-3 bg-tile p-3 text-xs">
+            <p className="mt-3 rounded-lg bg-tile p-3 text-xs">
               Te faltan <b>{money(cart.totals.freeShippingRemaining)}</b> para el envío gratis.
             </p>
           )}

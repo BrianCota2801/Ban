@@ -5,10 +5,6 @@ import { PAGES } from "@/lib/pages";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return Object.keys(PAGES).map((slug) => ({ slug }));
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = PAGES[(await params).slug];
   return page ? { title: page.title, description: page.description } : {};

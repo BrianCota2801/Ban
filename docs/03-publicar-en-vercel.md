@@ -62,6 +62,27 @@ Desde el panel puedes editar los productos de ejemplo, subir fotos, cambiar el b
 
 ---
 
+## Paso 4 (recomendado). Activar fotos grandes y videos
+
+Sin este paso puedes subir fotos de hasta 4 MB (se guardan en la base de datos) pero **no videos**.
+Con Supabase Storage puedes subir fotos de hasta 10 MB y videos de hasta 50 MB directo desde el panel.
+
+1. En Supabase abre tu proyecto y entra a **Project Settings → API Keys** (o **API**).
+2. Copia la **Project URL** (se ve como `https://izyrevkkachsbxawdrln.supabase.co`).
+3. Copia la llave **service_role** (en proyectos nuevos se llama **secret key**). Es secreta: no la compartas.
+4. En Vercel, **Settings → Environment Variables**, agrega (tipo **Secret**):
+
+   | Nombre | Valor |
+   |---|---|
+   | `SUPABASE_URL` | La Project URL |
+   | `SUPABASE_SERVICE_ROLE_KEY` | La llave service_role / secret |
+
+5. Vuelve a publicar (**Deployments → ⋯ → Redeploy**).
+6. En el panel, **Ajustes → Fotos y videos** debe decir **conectado**. La primera subida crea sola el espacio `ban-media` en Supabase.
+
+Consejos para video: MP4 de 10 a 20 segundos, sin sonido, horizontal 1920×1080 para computadora y vertical
+1080×1920 para la versión de celular. Menos de 15 MB carga rápido.
+
 ## Después
 
 - **Actualizaciones:** cada cambio que se suba a GitHub se publica solo en Vercel.

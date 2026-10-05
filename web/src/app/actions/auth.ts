@@ -17,6 +17,7 @@ import {
   requireUser,
 } from "@/lib/auth";
 import { attachCartToUser } from "@/lib/cart";
+import { mergeGuestFavorites } from "@/lib/favorites";
 import { fieldErrors, str, type FormState } from "@/lib/forms";
 import { dummyHash, hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/password";
 
@@ -55,6 +56,7 @@ export async function login(_: FormState, fd: FormData): Promise<FormState> {
   await clearLoginFailures(email.data);
   await createSession(user);
   await attachCartToUser(user.id);
+  await mergeGuestFavorites(user.id);
   if (user.role === "admin") await audit(user.id, "admin.login", { ip });
   redirect(safeNext(str(fd, "next") || (user.role === "admin" ? "/admin" : "/cuenta")));
 }
@@ -89,6 +91,7 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
     .returning();
   await createSession(user);
   await attachCartToUser(user.id);
+  await mergeGuestFavorites(user.id);
   redirect(safeNext(str(fd, "next")));
 }
 

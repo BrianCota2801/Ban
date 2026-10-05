@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 import { siteUrl } from "@/lib/payments";
+import { getSettings, themeVars } from "@/lib/settings";
 import "./globals.css";
 
 // Todo el sitio depende de la sesión, el carrito y datos editables desde el panel:
@@ -16,9 +17,10 @@ export const metadata: Metadata = {
   openGraph: { siteName: "BAN", locale: "es_MX", type: "website" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSettings();
   return (
-    <html lang="es-MX" className={archivo.variable}>
+    <html lang="es-MX" className={archivo.variable} style={themeVars(settings)}>
       <body>{children}</body>
     </html>
   );

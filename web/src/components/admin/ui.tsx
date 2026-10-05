@@ -73,24 +73,6 @@ export function Textarea({ label, name, help, ...rest }: { label: string; name: 
   );
 }
 
-export function ImageInput({ label, name, currentId, help }: { label: string; name: string; currentId: string | null; help?: string }) {
-  return (
-    <div className="field">
-      <span className="label">{label}</span>
-      {currentId && (
-        <div className="flex items-center gap-4">
-          <img src={`/media/${currentId}`} alt="" className="h-20 w-20 border border-line object-cover" />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name={`${name}Remove`} className="accent-black" /> Quitar imagen
-          </label>
-        </div>
-      )}
-      <input type="file" name={name} accept="image/jpeg,image/png,image/webp,image/avif" className="text-sm file:mr-3 file:border file:border-ink file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase" />
-      <p className="help">{help ?? "JPG, PNG, WebP o AVIF, máximo 5 MB."}</p>
-    </div>
-  );
-}
-
 export function Pill({ tone, children }: { tone: "ok" | "warn" | "muted" | "ink"; children: React.ReactNode }) {
   const c = { ok: "border-ok text-ok", warn: "border-warn text-warn", muted: "border-line text-muted", ink: "border-ink bg-ink text-white" }[tone];
   return <span className={`inline-block whitespace-nowrap border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider ${c}`}>{children}</span>;

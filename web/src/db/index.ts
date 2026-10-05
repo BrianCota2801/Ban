@@ -49,7 +49,16 @@ function connect(): DB {
   return drizzlePg(pool, { schema });
 }
 
-// En desarrollo Next recarga módulos; reutilizamos la conexión.
+// La conexión se abre en el primer uso (no al importar) y se reutiliza entre recargas de desarrollo.
 const g = globalThis as unknown as { __banDb?: DB };
-export const db: DB = g.__banDb ?? (g.__banDb = connect());
+function getDb(): DB {
+  return (g.__banDb ??= connect());
+}
+export const db: DB = new Proxy({} as DB, {
+  get(_, key) {
+    const real = getDb();
+    const value = Reflect.get(real, key, real);
+    return typeof value === "function" ? value.bind(real) : value;
+  },
+});
 export { schema };
