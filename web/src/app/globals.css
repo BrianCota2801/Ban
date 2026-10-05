@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* Estilo BAN: blanco, negro y gris de mostrador. Limpio y legible, inspirado en tiendas de básicos. */
+@theme {
+  --color-ink: #111111;
+  --color-muted: #6b6b6b;
+  --color-line: #e3e3e3;
+  --color-tile: #f3f3f1;
+  --color-paper: #ffffff;
+  --color-sale: #d0021b;
+  --color-ok: #127a3a;
+  --color-warn: #a35f00;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-paper text-ink antialiased; font-feature-settings: "tnum" 0; }
+  h1, h2, h3 { text-wrap: balance; }
+  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+  input, select, textarea { font: inherit; }
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-[1440px] px-4 md:px-8; }
+  .tag { @apply px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider; }
+  .btn { @apply inline-flex h-12 items-center justify-center gap-2 bg-ink px-6 text-sm font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40; }
+  .btn-outline { @apply inline-flex h-12 items-center justify-center gap-2 border border-ink bg-white px-6 text-sm font-bold uppercase tracking-wider text-ink transition-colors hover:bg-tile disabled:opacity-40; }
+  .btn-sm { @apply h-9 px-3 text-xs; }
+  .link { @apply underline underline-offset-4 hover:no-underline; }
+  .field { @apply grid gap-1.5; }
+  .label { @apply text-xs font-bold uppercase tracking-wider; }
+  .input { @apply h-11 w-full border border-line bg-white px-3 text-[15px] outline-none transition-colors focus:border-ink; }
+  textarea.input { @apply h-auto min-h-24 py-2; }
+  .help { @apply text-xs text-muted; }
+  .error { @apply text-sm text-sale; }
+  .eyebrow { @apply text-[11px] font-bold uppercase tracking-[0.18em]; }
+  .h-section { @apply text-xl font-extrabold uppercase tracking-wide md:text-2xl; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

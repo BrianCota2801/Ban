@@ -1,6 +1,6 @@
 # BAN — Plan de negocio
 
-> Versión 0.1 · octubre 2026 · documento vivo, se actualiza conforme llegan cotizaciones y muestras.
+> Versión 0.2 · octubre 2026 · documento vivo, se actualiza conforme llegan cotizaciones y muestras.
 > Las cifras marcadas como **(estimado)** son supuestos de trabajo; se reemplazan por datos reales en cuanto los tengamos.
 
 ---
@@ -63,7 +63,10 @@ que se deforman. Sigue marcas en Instagram y TikTok y valora la edición limitad
 
 ## 5. Producto
 
-### 5.1 Catálogo fijo (Core): empezar con 1 o 2 prendas
+### 5.1 Catálogo fijo (Core): lanzamiento con 3 cortes
+
+**Decisión (oct 2026):** arrancar con playera heavyweight en **oversize** (prenda principal), **regular** y **boxy**,
+la misma tela en los tres cortes para simplificar la compra de tela y la producción.
 
 | Prenda | Especificación objetivo | Colores de lanzamiento |
 |---|---|---|
@@ -186,10 +189,19 @@ Para no arriesgar todo el lote, abrir una **preventa** (con 2–4 semanas de ent
 | Marca ya registrada por alguien más | Búsqueda IMPI en la semana 1, antes de gastar en identidad |
 | Inventario muerto en drops | Drops chicos, numerados, con fecha; nunca más del 30 % del inventario |
 
-## 14. Decisiones pendientes
+## 14. Decisiones
 
-1. **Presupuesto inicial disponible** y si habrá socios.
-2. **Régimen fiscal** (persona física o moral).
-3. **Fit de la prenda estrella**: regular, boxy u oversize.
-4. **Ruta de producción**: México, país con tratado o Asia (se decide con muestras y calculadora).
-5. **Ciudad base** para almacén y pop-ups.
+**Tomadas:**
+- Sin socios: arranque como persona física (validar RESICO o actividad empresarial con contador).
+- Cortes de lanzamiento: oversize (principal), regular y boxy.
+- Base de operación: **Nogales, Sonora**, 100 % en línea al inicio.
+
+**Pendientes:**
+1. **Presupuesto inicial** (la tabla de la sección 10 da el rango; con 3 cortes conviene empezar con ~100 piezas por corte).
+2. **Ruta de producción**: México, país con tratado o Asia (se decide con muestras y calculadora).
+
+### Ventajas y retos de operar desde Nogales
+- **Aduana de Nogales**: si se importa (Portugal, Perú, Asia), la mercancía puede entrar por la misma ciudad, con agentes aduanales locales.
+- **Envíos nacionales**: de Sonora al centro del país son 3–5 días hábiles; conviene ofrecer envío express en la web y cotizar varias paqueterías.
+- **Mercado de Arizona**: a futuro, vender en dólares a EE. UU. (Stripe lo permite) aprovechando la cercanía.
+- **Maquila en Sonora**: hay industria maquiladora en la región; vale la pena buscar talleres de confección en Hermosillo y Nogales además de los del centro.
