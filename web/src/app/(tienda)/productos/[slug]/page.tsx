@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Countdown } from "@/components/countdown";
-import { ProductGrid } from "@/components/product-card";
+import { ProductGrid } from "@/components/product-grid";
 import { ProductView } from "@/components/product-view";
 import { FIT_LABEL, getProductBySlug, listProducts } from "@/lib/catalog";
 import { money } from "@/lib/money";
 import { getFavoriteIds } from "@/lib/favorites";
 import { getSettings } from "@/lib/settings";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams?: Promise<{ color?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const p = await getProductBySlug((await params).slug);
@@ -21,8 +21,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const p = await getProductBySlug((await params).slug);
+  const wanted = (await searchParams)?.color;
   if (!p) notFound();
   const [related, settings, favs] = await Promise.all([listProducts(), getSettings(), getFavoriteIds()]);
   const onSale = p.compareAtPrice != null && p.compareAtPrice > p.price;
@@ -47,6 +48,7 @@ export default async function ProductPage({ params }: Props) {
       <ProductView
         productId={p.id}
         favorite={favs.has(p.id)}
+        initialColor={p.colors.some((c) => c.name === wanted) ? wanted : undefined}
         name={p.name}
         fit={p.fit}
         images={p.images}

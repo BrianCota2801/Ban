@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addVariants, deleteProduct, deleteProductImage, deleteVariant, moveProductImage, updateStock } from "@/app/admin/actions";
+import { addVariants, deleteProduct, deleteProductImage, deleteVariant, moveProductImage, setProductImageColor, updateStock } from "@/app/admin/actions";
 import { ActionForm } from "@/components/admin/action-form";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { ProductForm } from "@/components/admin/product-form";
@@ -112,41 +112,66 @@ export default async function EditProduct({ params, searchParams }: { params: Pr
             </div>
           </Card>
 
-          <Card title="Fotos y videos" help="La primera es la portada. Asigna un color para que la galería cambie al elegirlo en la tienda.">
-            {imgs.length > 0 && (
-              <div className="mb-6 grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {imgs.map((i, k) => {
-                  const src = imageSrc(i);
-                  return (
-                    <figure key={i.id} className="grid gap-1.5">
-                      <div className="aspect-[4/5] overflow-hidden rounded-xl border border-line bg-tile">
-                        {src && (isVideo(src) ? <video src={src} muted loop autoPlay playsInline className="h-full w-full object-cover" /> : <img src={src} alt="" className="h-full w-full object-cover" />)}
-                      </div>
-                      <figcaption className="flex items-center justify-between gap-1 text-xs">
-                        <span className="truncate text-muted">{k === 0 ? "Portada · " : ""}{i.color ?? "Todos"}</span>
-                        <span className="flex items-center gap-1">
-                          <form action={moveProductImage}>
-                            <input type="hidden" name="id" value={i.id} />
-                            <input type="hidden" name="dir" value="up" />
-                            <button disabled={k === 0} aria-label="Mover antes" className="px-1 text-muted hover:text-ink disabled:opacity-20">◀</button>
-                          </form>
-                          <form action={moveProductImage}>
-                            <input type="hidden" name="id" value={i.id} />
-                            <input type="hidden" name="dir" value="down" />
-                            <button disabled={k === imgs.length - 1} aria-label="Mover después" className="px-1 text-muted hover:text-ink disabled:opacity-20">▶</button>
-                          </form>
-                          <form action={deleteProductImage}>
-                            <input type="hidden" name="id" value={i.id} />
-                            <ConfirmButton message="¿Quitar esta foto?" className="px-1 text-muted hover:text-sale">✕</ConfirmButton>
-                          </form>
-                        </span>
-                      </figcaption>
-                    </figure>
-                  );
-                })}
-              </div>
-            )}
-            <ProductImageUploader productId={p.id} colors={colors.map((c) => c.name)} />
+          <Card title="Fotos por color" help="Cada color tiene sus fotos: en la tienda, al elegir un color se muestran las suyas. La primera de cada color es su portada. Las “generales” se usan para los colores que no tienen fotos propias.">
+            {colors.length === 0 && <p className="mb-4 text-sm text-muted">Primero agrega un color en “Colores, tallas e inventario”.</p>}
+            <div className="grid gap-6">
+              {[...colors.map((c) => ({ key: c.name, label: c.name, hex: c.hex as string | null })), { key: "", label: "Generales (todos los colores)", hex: null }].map((g) => {
+                const group = imgs.filter((i) => (i.color ?? "") === g.key);
+                return (
+                  <section key={g.key || "_general"} className="rounded-xl border border-line p-4">
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
+                      {g.hex && <span className="h-4 w-4 rounded-full border border-black/15" style={{ background: g.hex }} />}
+                      {g.label}
+                      <span className="font-normal text-muted">· {group.length} {group.length === 1 ? "foto" : "fotos"}</span>
+                    </h3>
+                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-5">
+                      {group.map((i, k) => {
+                        const src = imageSrc(i);
+                        return (
+                          <figure key={i.id} className="grid content-start gap-1.5">
+                            <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-tile">
+                              {src && (isVideo(src) ? <video src={src} muted loop autoPlay playsInline className="h-full w-full object-cover" /> : <img src={src} alt="" className="h-full w-full object-cover" />)}
+                              {k === 0 && <span className="tag absolute left-1.5 top-1.5 bg-ink text-white">Portada</span>}
+                            </div>
+                            <figcaption className="flex items-center justify-between gap-1 text-xs">
+                              <span className="flex">
+                                <form action={moveProductImage}>
+                                  <input type="hidden" name="id" value={i.id} />
+                                  <input type="hidden" name="dir" value="up" />
+                                  <button disabled={k === 0} aria-label="Mover antes" className="px-1.5 py-1 text-muted hover:text-ink disabled:opacity-20">◀</button>
+                                </form>
+                                <form action={moveProductImage}>
+                                  <input type="hidden" name="id" value={i.id} />
+                                  <input type="hidden" name="dir" value="down" />
+                                  <button disabled={k === group.length - 1} aria-label="Mover después" className="px-1.5 py-1 text-muted hover:text-ink disabled:opacity-20">▶</button>
+                                </form>
+                              </span>
+                              <form action={deleteProductImage}>
+                                <input type="hidden" name="id" value={i.id} />
+                                <ConfirmButton message="¿Quitar esta foto?" className="px-1.5 py-1 text-muted hover:text-sale">Quitar</ConfirmButton>
+                              </form>
+                            </figcaption>
+                            {colors.length > 0 && (
+                              <form action={setProductImageColor} className="flex gap-1">
+                                <input type="hidden" name="id" value={i.id} />
+                                <label htmlFor={`col-${i.id}`} className="sr-only">Mover a otro color</label>
+                                <select id={`col-${i.id}`} name="color" defaultValue={i.color ?? ""} className="input h-8 min-w-0 flex-1 px-2 text-xs">
+                                  <option value="">General</option>
+                                  {colors.map((c) => <option key={c.name}>{c.name}</option>)}
+                                </select>
+                                <button className="rounded-lg border border-line px-2 text-xs hover:border-ink">OK</button>
+                              </form>
+                            )}
+                          </figure>
+                        );
+                      })}
+                      <ProductImageUploader productId={p.id} color={g.key} label={g.key ? `Subir fotos de ${g.key}` : "Subir fotos generales"} />
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+            <p className="help mt-4">Fotos verticales 4:5 con fondo claro. Puedes elegir varias a la vez. Con Supabase Storage también acepta videos cortos.</p>
           </Card>
         </div>
       </div>

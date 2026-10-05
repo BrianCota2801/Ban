@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Countdown } from "@/components/countdown";
 import { NewsletterForm } from "@/components/newsletter-form";
-import { ProductGrid } from "@/components/product-card";
+import { ProductGrid } from "@/components/product-grid";
 import { listProducts } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Drops", description: "Ediciones limitadas y colaboraciones de BAN." };

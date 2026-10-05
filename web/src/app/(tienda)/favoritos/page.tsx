@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ProductGrid } from "@/components/product-card";
+import { ProductGrid } from "@/components/product-grid";
 import { getCurrentUser } from "@/lib/auth";
 import { listProductsByIds } from "@/lib/catalog";
 import { getFavoriteIds } from "@/lib/favorites";

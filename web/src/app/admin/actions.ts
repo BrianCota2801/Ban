@@ -366,17 +366,31 @@ export async function addProductImages(_: FormState, fd: FormData): Promise<Form
   return { ok: true, message: urls.length === 1 ? "Foto agregada." : `${urls.length} fotos agregadas.` };
 }
 
+/** Mueve una foto antes o después dentro de su mismo color. */
 export async function moveProductImage(fd: FormData) {
   await requireAdmin();
   const id = Number(fd.get("id"));
   const [img] = await db.select().from(productImages).where(eq(productImages.id, id)).limit(1);
   if (!img) return;
-  const all = await db.select().from(productImages).where(eq(productImages.productId, img.productId)).orderBy(asc(productImages.sortOrder));
-  const i = all.findIndex((x) => x.id === id);
+  const all = await db.select().from(productImages).where(eq(productImages.productId, img.productId)).orderBy(asc(productImages.sortOrder), asc(productImages.id));
+  const group = all.filter((x) => x.color === img.color);
+  const i = group.findIndex((x) => x.id === id);
   const j = fd.get("dir") === "up" ? i - 1 : i + 1;
-  if (j < 0 || j >= all.length) return;
-  [all[i], all[j]] = [all[j], all[i]];
+  if (j < 0 || j >= group.length) return;
+  const other = group[j];
+  // Intercambia posiciones en el orden global para no afectar otros colores.
+  const ai = all.findIndex((x) => x.id === img.id);
+  const bi = all.findIndex((x) => x.id === other.id);
+  [all[ai], all[bi]] = [all[bi], all[ai]];
   for (const [k, x] of all.entries()) await db.update(productImages).set({ sortOrder: k + 1 }).where(eq(productImages.id, x.id));
+  refreshStore();
+}
+
+/** Cambia el color al que pertenece una foto (vacío = todos los colores). */
+export async function setProductImageColor(fd: FormData) {
+  await requireAdmin();
+  const color = str(fd, "color").slice(0, 40) || null;
+  await db.update(productImages).set({ color }).where(eq(productImages.id, Number(fd.get("id"))));
   refreshStore();
 }
 

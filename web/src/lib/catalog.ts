@@ -5,7 +5,7 @@ import { productImages, products, variants, type Fit, type Product, type Variant
 import { mediaSrc } from "./media-url";
 
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
-export const FIT_LABEL: Record<Fit, string> = { oversize: "Oversize", regular: "Regular", boxy: "Boxy" };
+export { FIT_LABEL } from "./fit";
 
 export type ColorOption = { name: string; hex: string };
 
@@ -15,6 +15,10 @@ export type ProductCard = Pick<
 > & {
   colors: ColorOption[];
   image: string | null;
+  /** Primera foto de cada color, para cambiar la foto de la tarjeta al tocar un color. */
+  colorImages: Record<string, string>;
+  /** Foto sin color asignado (sirve para cualquier color), si existe. */
+  generalImage: string | null;
   soldOut: boolean;
   upcoming: boolean;
 };
@@ -66,7 +70,14 @@ async function attach(rows: Product[]): Promise<ProductCard[]> {
       gsm: p.gsm,
       releaseAt: p.releaseAt,
       colors: uniqueColors(pv),
-      image: imageSrc(imgs.find((i) => i.productId === p.id)),
+      image: imageSrc(imgs.find((i) => i.productId === p.id && !i.color) ?? imgs.find((i) => i.productId === p.id)),
+      generalImage: imageSrc(imgs.find((i) => i.productId === p.id && !i.color)),
+      colorImages: Object.fromEntries(
+        uniqueColors(pv).flatMap((c) => {
+          const src = imageSrc(imgs.find((i) => i.productId === p.id && i.color === c.name));
+          return src ? [[c.name, src]] : [];
+        }),
+      ),
       soldOut: pv.length > 0 && pv.every((v) => v.stock <= 0),
       upcoming: !!p.releaseAt && p.releaseAt.getTime() > now,
     };

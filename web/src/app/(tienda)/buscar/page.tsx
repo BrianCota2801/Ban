@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchIcon } from "@/components/icons";
-import { ProductGrid } from "@/components/product-card";
+import { ProductGrid } from "@/components/product-grid";
 import { searchProducts } from "@/lib/catalog";
 
 export const metadata: Metadata = { title: "Buscar", robots: { index: false } };

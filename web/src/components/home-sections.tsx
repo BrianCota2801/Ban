@@ -19,7 +19,8 @@ import { isVideo, mediaSrc } from "@/lib/media-url";
 import { Countdown } from "./countdown";
 import { HeroCarousel } from "./hero-carousel";
 import { NewsletterForm } from "./newsletter-form";
-import { ProductCard, ProductGrid } from "./product-card";
+import { ProductCard } from "./product-card";
+import { cardData, ProductGrid } from "./product-grid";
 import { Scroller } from "./scroller";
 import { TeeArt } from "./tee-art";
 
@@ -117,7 +118,7 @@ async function ProductGridSection({ d }: { d: ProductGridData }) {
       {d.layout === "carousel" ? (
         <Scroller columns={d.columns}>
           {shown.map((p) => (
-            <ProductCard key={p.id} p={p} favorite={favs.has(p.id)} />
+            <ProductCard key={p.id} p={cardData(p)} favorite={favs.has(p.id)} />
           ))}
         </Scroller>
       ) : (

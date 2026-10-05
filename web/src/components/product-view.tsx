@@ -14,6 +14,7 @@ type V = { id: string; color: string; colorHex: string; size: string; stock: num
 export function ProductView({
   productId,
   favorite,
+  initialColor,
   name,
   fit,
   images,
@@ -24,6 +25,7 @@ export function ProductView({
 }: {
   productId: string;
   favorite: boolean;
+  initialColor?: string;
   name: string;
   fit: Fit;
   images: Img[];
@@ -32,10 +34,11 @@ export function ProductView({
   disabled: boolean;
   children: React.ReactNode;
 }) {
-  const [color, setColor] = useState(colors[0]?.name ?? "");
+  const [color, setColor] = useState(initialColor ?? colors[0]?.name ?? "");
   const [slide, setSlide] = useState(0);
   const forColor = images.filter((i) => i.color === color);
-  const shown = forColor.length ? forColor : images.filter((i) => !i.color).length ? images.filter((i) => !i.color) : images;
+  // Fotos del color elegido; si no tiene, las generales; si tampoco hay, la silueta en ese color.
+  const shown = forColor.length ? forColor : images.filter((i) => !i.color);
   const hex = colors.find((c) => c.name === color)?.hex ?? "#f5f5f5";
 
   return (
@@ -85,6 +88,7 @@ export function ProductView({
             variants={variants}
             colors={colors}
             disabled={disabled}
+            initialColor={initialColor}
             onColorChange={(c) => {
               setColor(c);
               setSlide(0);

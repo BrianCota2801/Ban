@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ProductGrid } from "@/components/product-card";
+import { ProductGrid } from "@/components/product-grid";
 import { FITS, type Fit } from "@/db/schema";
 import { FIT_LABEL, listProducts } from "@/lib/catalog";
 

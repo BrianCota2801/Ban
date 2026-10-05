@@ -4,12 +4,12 @@ import { useState, useTransition } from "react";
 import { addProductImages } from "@/app/admin/actions";
 import { uploadFile } from "./upload";
 
-/** Sube varias fotos (o videos cortos) del producto y las agrega en el color elegido. */
-export function ProductImageUploader({ productId, colors }: { productId: string; colors: string[] }) {
-  const [color, setColor] = useState("");
+/** Botón para subir varias fotos (o videos cortos) a un color del producto. */
+export function ProductImageUploader({ productId, color, label }: { productId: string; color: string; label: string }) {
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const id = `up-${color || "general"}`.replace(/\W+/g, "-");
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -17,7 +17,7 @@ export function ProductImageUploader({ productId, colors }: { productId: string;
     const urls: string[] = [];
     try {
       for (const [i, f] of [...files].entries()) {
-        await uploadFile(f, (p) => setProgress(`Subiendo ${i + 1} de ${files.length} · ${p}%`)).then((u) => urls.push(u));
+        urls.push(await uploadFile(f, (p) => setProgress(`Subiendo ${i + 1} de ${files.length} · ${p}%`)));
       }
     } catch (e) {
       setStatus({ ok: false, text: e instanceof Error ? e.message : "No se pudo subir." });
@@ -34,34 +34,30 @@ export function ProductImageUploader({ productId, colors }: { productId: string;
     });
   }
 
+  const busy = !!progress || pending;
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div className="field">
-          <label htmlFor="img-color" className="label">Color de estas fotos</label>
-          <select id="img-color" className="input" value={color} onChange={(e) => setColor(e.target.value)}>
-            <option value="">Todos los colores</option>
-            {colors.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <label className={`btn cursor-pointer ${progress || pending ? "pointer-events-none opacity-50" : ""}`}>
-          {progress ?? (pending ? "Guardando…" : "Subir fotos")}
-          <input
-            type="file"
-            multiple
-            className="sr-only"
-            accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"
-            onChange={(e) => {
-              onFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
-        </label>
-      </div>
-      <p className="help">Vertical 4:5 con fondo claro. Puedes elegir varias a la vez. También acepta videos cortos (con Supabase Storage).</p>
-      {status && <p className={status.ok ? "text-sm font-bold text-ok" : "error"}>{status.text}</p>}
+    <div className="grid gap-2">
+      <label
+        htmlFor={id}
+        className={`grid aspect-[4/5] cursor-pointer place-items-center rounded-xl border-2 border-dashed border-line bg-white p-3 text-center text-xs font-bold text-muted transition-colors hover:border-ink hover:text-ink ${busy ? "pointer-events-none opacity-60" : ""}`}
+      >
+        <span>
+          <span className="block text-2xl leading-none">+</span>
+          {progress ?? (pending ? "Guardando…" : label)}
+        </span>
+      </label>
+      <input
+        id={id}
+        type="file"
+        multiple
+        className="sr-only"
+        accept="image/jpeg,image/png,image/webp,image/avif,video/mp4,video/webm"
+        onChange={(e) => {
+          onFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      {status && <p className={status.ok ? "text-xs font-bold text-ok" : "text-xs text-sale"}>{status.text}</p>}
     </div>
   );
 }
