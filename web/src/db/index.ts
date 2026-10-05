@@ -13,7 +13,14 @@ export type DB = ReturnType<typeof drizzlePostgres<typeof schema>>;
 export function databaseUrl() {
   const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (url) return url;
-  if (process.env.VERCEL) throw new Error("Falta la variable DATABASE_URL (o POSTGRES_URL) en Vercel.");
+  if (process.env.VERCEL) {
+    const env = process.env.VERCEL_ENV ?? "?";
+    throw new Error(
+      `Falta la variable DATABASE_URL (o POSTGRES_URL) en Vercel. Esta publicación es de tipo "${env}" ` +
+        `(rama ${process.env.VERCEL_GIT_COMMIT_REF ?? "?"}). En Settings → Environment Variables, ` +
+        `revisa que DATABASE_URL tenga marcado "${env === "preview" ? "Preview" : "Production"}" y vuelve a publicar.`,
+    );
+  }
   return "pglite:./.data/db";
 }
 

@@ -37,7 +37,7 @@ ejemplo automáticamente.
 3. En la pantalla de configuración:
    - **Root Directory:** pulsa **Edit** y elige la carpeta **`web`**. Es importante.
    - **Framework Preset:** Next.js (se detecta solo).
-4. Abre **Environment Variables** y agrega:
+4. Abre **Environment Variables** y agrega estas tres. Deja marcados los tres entornos (Production, Preview y Development):
 
    | Nombre | Valor |
    |---|---|
@@ -74,7 +74,7 @@ Desde el panel puedes editar los productos de ejemplo, subir fotos, cambiar el b
 
 | Mensaje en Vercel | Qué hacer |
 |---|---|
-| `Falta la variable DATABASE_URL` | Revisa que la variable esté escrita igual, en *Settings → Environment Variables*, y vuelve a publicar (*Deployments → Redeploy*) |
+| `Falta la variable DATABASE_URL` | En *Settings → Environment Variables*: el nombre debe ser exactamente `DATABASE_URL` y tener marcados **Production y Preview**. Después, *Deployments → ⋯ → Redeploy*. Las variables nuevas no se aplican a publicaciones anteriores |
 | `password authentication failed` | La contraseña en la URL no coincide. En Supabase: *Project Settings → Database → Reset database password* y actualiza la URL |
 | `ENOTFOUND` o `timeout` | Copiaste la URL de conexión directa. Usa la de **Transaction pooler** (puerto 6543) |
 | Error de `npm run db:migrate` | Copia el mensaje completo y compártelo para revisarlo |
