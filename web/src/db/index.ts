@@ -39,6 +39,11 @@ function connect(): DB {
     prepare: false,
     max: Number(process.env.DATABASE_POOL_MAX) || 3,
     ssl: local ? false : "require",
+    // En Vercel la función se congela entre visitas y las conexiones abiertas mueren.
+    // Cerramos las inactivas pronto y no esperamos indefinidamente a conectar.
+    idle_timeout: 5,
+    connect_timeout: 10,
+    max_lifetime: 60 * 5,
   });
   return drizzlePostgres(client, { schema });
 }

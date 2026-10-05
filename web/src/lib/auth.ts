@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { and, count, eq, gt, lt } from "drizzle-orm";
+import { and, count, eq, gt, inArray, lt } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
@@ -86,15 +86,13 @@ export async function requireAdmin(): Promise<SessionUser> {
 
 export async function isLoginBlocked(email: string, ip: string) {
   const since = new Date(Date.now() - LOCK_WINDOW_MS);
-  const [byEmail] = await db
-    .select({ n: count() })
+  const rows = await db
+    .select({ key: loginAttempts.key, n: count() })
     .from(loginAttempts)
-    .where(and(eq(loginAttempts.key, `email:${email}`), gt(loginAttempts.createdAt, since)));
-  const [byIp] = await db
-    .select({ n: count() })
-    .from(loginAttempts)
-    .where(and(eq(loginAttempts.key, `ip:${ip}`), gt(loginAttempts.createdAt, since)));
-  return byEmail.n >= MAX_FAILS_PER_EMAIL || byIp.n >= MAX_FAILS_PER_IP;
+    .where(and(inArray(loginAttempts.key, [`email:${email}`, `ip:${ip}`]), gt(loginAttempts.createdAt, since)))
+    .groupBy(loginAttempts.key);
+  const n = (k: string) => rows.find((r) => r.key === k)?.n ?? 0;
+  return n(`email:${email}`) >= MAX_FAILS_PER_EMAIL || n(`ip:${ip}`) >= MAX_FAILS_PER_IP;
 }
 
 export async function recordLoginFailure(email: string, ip: string) {
