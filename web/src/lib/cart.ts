@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { cartItems, carts, coupons, productImages, products, variants } from "@/db/schema";
 import { getCurrentUser } from "./auth";
 import { imageSrc } from "./catalog";
+import { colorKey } from "./color-key";
 import { computeTotals, type Totals } from "./pricing";
 import { getSettings } from "./settings";
 
@@ -85,7 +86,7 @@ export async function loadCart(): Promise<Cart> {
     unitPrice: r.unitPrice,
     stock: r.stock,
     image: imageSrc(
-      imgs.find((i) => i.productId === r.productId && i.color === r.color) ?? imgs.find((i) => i.productId === r.productId),
+      imgs.find((i) => i.productId === r.productId && colorKey(i.color) === colorKey(r.color)) ?? imgs.find((i) => i.productId === r.productId),
     ),
     purchasable: r.status === "active" && !(r.releaseAt && r.releaseAt.getTime() > now) && r.stock >= r.quantity,
   }));

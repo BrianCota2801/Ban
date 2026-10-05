@@ -6,6 +6,7 @@ import type { Fit } from "@/db/schema";
 import { FIT_LABEL } from "@/lib/fit";
 import { isVideo, mediaSrc } from "@/lib/media-url";
 import { money } from "@/lib/money";
+import { ColorSwatches } from "./color-swatches";
 import { FavoriteButton } from "./favorite-button";
 import { TeeArt } from "./tee-art";
 
@@ -28,15 +29,24 @@ export type CardData = {
 
 /** Tarjeta de producto: al tocar o pasar sobre un color, cambia la foto a la de ese color. */
 export function ProductCard({ p, favorite }: { p: CardData; favorite: boolean }) {
-  const [color, setColor] = useState<string | null>(null);
+  // Siempre hay un color elegido (el primero al cargar) y la foto es la de ese color.
+  const [color, setColor] = useState<string>(p.colors[0]?.name ?? "");
   const onSale = p.compareAtPrice != null && p.compareAtPrice > p.price;
-  // Con un color elegido: su foto, o la general, o la silueta en ese color (nunca la foto de otro color).
+  // Foto del color elegido, o la general, o la silueta en ese color (nunca la foto de otro color).
   const src = mediaSrc(color ? p.colorImages[color] || p.generalImage : p.image);
-  const hex = p.colors.find((c) => c.name === color)?.hex ?? p.colors[0]?.hex ?? "#f5f5f5";
+  const hex = p.colors.find((c) => c.name === color)?.hex ?? "#f5f5f5";
   const href = `/productos/${p.slug}${color ? `?color=${encodeURIComponent(color)}` : ""}`;
 
+  // Precarga las fotos de los otros colores al acercarse, para que el cambio sea instantáneo.
+  const preload = () => {
+    for (const url of Object.values(p.colorImages)) {
+      const src = mediaSrc(url);
+      if (src && !isVideo(src)) new Image().src = src;
+    }
+  };
+
   return (
-    <div className="group relative">
+    <div className="group relative" onPointerEnter={preload} onTouchStart={preload}>
       <Link href={href} className="block">
         <div className="r-card relative aspect-[4/5] overflow-hidden bg-tile">
           {src ? (
@@ -57,31 +67,14 @@ export function ProductCard({ p, favorite }: { p: CardData; favorite: boolean })
         </div>
       </Link>
       <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Colores">
-          {p.colors.slice(0, 6).map((c) => (
-            <button
-              key={c.name}
-              type="button"
-              title={c.name}
-              aria-label={`Ver en ${c.name}`}
-              aria-pressed={color === c.name}
-              onMouseEnter={() => setColor(c.name)}
-              onFocus={() => setColor(c.name)}
-              onClick={() => setColor(c.name)}
-              className={`grid h-6 w-6 place-items-center rounded-full border ${color === c.name ? "border-ink" : "border-transparent hover:border-line"}`}
-            >
-              <span className="h-4 w-4 rounded-full border border-black/15" style={{ background: c.hex }} />
-            </button>
-          ))}
-          {p.colors.length > 6 && <span className="text-[11px] text-muted">+{p.colors.length - 6}</span>}
-        </div>
+        <ColorSwatches colors={p.colors} selected={color} onSelect={setColor} hoverSelects max={6} />
         <FavoriteButton productId={p.id} initial={favorite} />
       </div>
       <Link href={href} className="block">
         <p className="mt-1 text-[11px] uppercase tracking-wider text-muted">
           {FIT_LABEL[p.fit]}
           {p.gsm ? ` · ${p.gsm} g/m²` : ""}
-          {color ? ` · ${color}` : ""}
+          {p.colors.length > 1 && color ? ` · ${color}` : ""}
         </p>
         <h3 className="mt-0.5 text-[15px] leading-snug">{p.name}</h3>
         <p className="mt-1 text-lg font-bold">

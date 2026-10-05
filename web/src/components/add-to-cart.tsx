@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { addToCart } from "@/app/actions/cart";
+import { ColorSwatches } from "./color-swatches";
 
 type V = { id: string; color: string; colorHex: string; size: string; stock: number };
 
@@ -34,24 +35,17 @@ export function AddToCart({
         <legend className="label">
           Color: <span className="font-normal normal-case tracking-normal">{color}</span>
         </legend>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {colors.map((c) => (
-            <button
-              key={c.name}
-              type="button"
-              title={c.name}
-              aria-label={c.name}
-              aria-pressed={c.name === color}
-              onClick={() => {
-                setColor(c.name);
-                setSize(null);
-                onColorChange?.(c.name);
-              }}
-              className={`h-10 w-10 rounded-full border-2 p-0.5 ${c.name === color ? "border-ink" : "border-transparent hover:border-line"}`}
-            >
-              <span className="block h-full w-full rounded-full border border-black/10" style={{ background: c.hex }} />
-            </button>
-          ))}
+        <div className="mt-3">
+          <ColorSwatches
+            colors={colors}
+            selected={color}
+            size="lg"
+            onSelect={(name) => {
+              setColor(name);
+              setSize(null);
+              onColorChange?.(name);
+            }}
+          />
         </div>
       </fieldset>
 

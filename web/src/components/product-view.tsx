@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Fit } from "@/db/schema";
+import { colorKey } from "@/lib/color-key";
 import { isVideo } from "@/lib/media-url";
 import { AddToCart } from "./add-to-cart";
 import { FavoriteButton } from "./favorite-button";
@@ -36,7 +37,7 @@ export function ProductView({
 }) {
   const [color, setColor] = useState(initialColor ?? colors[0]?.name ?? "");
   const [slide, setSlide] = useState(0);
-  const forColor = images.filter((i) => i.color === color);
+  const forColor = images.filter((i) => colorKey(i.color) === colorKey(color));
   // Fotos del color elegido; si no tiene, las generales; si tampoco hay, la silueta en ese color.
   const shown = forColor.length ? forColor : images.filter((i) => !i.color);
   const hex = colors.find((c) => c.name === color)?.hex ?? "#f5f5f5";
@@ -48,6 +49,7 @@ export function ProductView({
           <>
             {/* Celular: deslizable. Computadora: cuadrícula. */}
             <div
+              key={color}
               className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0"
               onScroll={(e) => {
                 const el = e.currentTarget;

@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { productImages, products, variants, type Fit, type Product, type Variant } from "@/db/schema";
+import { colorKey } from "./color-key";
 import { mediaSrc } from "./media-url";
 
 export const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -74,7 +75,7 @@ async function attach(rows: Product[]): Promise<ProductCard[]> {
       generalImage: imageSrc(imgs.find((i) => i.productId === p.id && !i.color)),
       colorImages: Object.fromEntries(
         uniqueColors(pv).flatMap((c) => {
-          const src = imageSrc(imgs.find((i) => i.productId === p.id && i.color === c.name));
+          const src = imageSrc(imgs.find((i) => i.productId === p.id && colorKey(i.color) === colorKey(c.name)));
           return src ? [[c.name, src]] : [];
         }),
       ),
