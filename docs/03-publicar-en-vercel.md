@@ -46,6 +46,10 @@ ejemplo automáticamente.
    | `ADMIN_PASSWORD` | Una contraseña de **12 caracteres o más**, distinta a la de tu Gmail |
 
 5. Pulsa **Deploy** y espera 2–3 minutos.
+   Si agregaste o cambiaste variables **después** de una publicación, esa publicación no las tiene: en
+   **Deployments**, abre el menú **⋯** de la fila más reciente y elige **Redeploy**.
+   Revisa también que en **Settings → Environments → Production** la rama sea la del repositorio
+   (si no hay `main`, Vercel publicaría todo como *Preview* y no usaría las variables de Production).
 6. Al terminar, Vercel te da una dirección tipo `https://ban-xxxx.vercel.app`. ¡La tienda ya está en línea!
 
 ## Paso 3. Entrar al panel
