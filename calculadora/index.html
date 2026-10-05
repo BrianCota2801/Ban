@@ -1,0 +1,539 @@
+<title>Calculadora BAN</title>
+<meta name="description" content="Costo puesto en bodega, margen y precio sugerido por proveedor para las prendas de BAN.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: etiqueta de prenda como encabezado; comparativa de proveedores arriba; formulario a la izquierda y resultados fijos a la derecha. */
+:root {
+  --paper: #f2f3ef;
+  --surface: #ffffff;
+  --ink: #15181d;
+  --muted: #5a5f66;
+  --line: #d8dbd4;
+  --accent: #2c3a8c;          /* índigo de tinte */
+  --accent-soft: #e4e7f6;
+  --good: #1b7a3e;
+  --warn: #9a6400;
+  --bad: #b3261e;
+  --seg-1: #2a78d6;
+  --seg-2: #eb6834;
+  --seg-3: #1baf7a;
+  --seg-4: #eda100;
+  --seg-iva: #a7aaa4;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111317; --surface: #191c21; --ink: #eceee9; --muted: #9ba1a8; --line: #2d3138;
+    --accent: #95a3ff; --accent-soft: #232945; --good: #4cc27a; --warn: #e0a23a; --bad: #ff7a70;
+    --seg-1: #3987e5; --seg-2: #d95926; --seg-3: #199e70; --seg-4: #c98500; --seg-iva: #5d6168;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111317; --surface: #191c21; --ink: #eceee9; --muted: #9ba1a8; --line: #2d3138;
+  --accent: #95a3ff; --accent-soft: #232945; --good: #4cc27a; --warn: #e0a23a; --bad: #ff7a70;
+  --seg-1: #3987e5; --seg-2: #d95926; --seg-3: #199e70; --seg-4: #c98500; --seg-iva: #5d6168;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* Encabezado tipo etiqueta de cuello */
+.label { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; border: 1.5px solid var(--ink); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.label .brand { background: var(--ink); color: var(--paper); font-family: var(--f-display); font-weight: 900; font-stretch: 125%; font-size: clamp(34px, 6vw, 52px); letter-spacing: 0.06em; padding: 8px 22px; display: flex; align-items: center; }
+.label .meta { flex: 1 1 320px; min-width: 0; padding: 12px 18px; display: grid; gap: 4px; align-content: center; }
+.label h1 { font-size: clamp(20px, 3vw, 26px); font-weight: 700; font-stretch: 85%; letter-spacing: 0.01em; }
+.label .care { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.intro { color: var(--muted); max-width: 70ch; margin: 0; }
+
+/* Comparativa */
+.section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; }
+.section-head h2 { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-stretch: 110%; }
+.hint { color: var(--muted); font-size: 13px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+tbody tr:last-child td { border-bottom: 0; }
+#compare tbody tr { cursor: pointer; }
+#compare tbody tr:hover { background: var(--accent-soft); }
+#compare tbody tr.active td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.best { color: var(--good); font-weight: 600; }
+.pill { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.good { color: var(--good); } .pill.warn { color: var(--warn); } .pill.bad { color: var(--bad); }
+
+/* Pestañas de proveedor */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { font: 600 14px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tab:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cuerpo */
+.main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+form { display: grid; gap: 18px; }
+fieldset { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); margin: 0; padding: 14px 16px 16px; min-width: 0; }
+legend { font-family: var(--f-display); font-weight: 700; font-stretch: 110%; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 6px; }
+legend small { font-family: var(--f-body); font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; margin-left: 4px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
+.grid .full { grid-column: 1 / -1; }
+@media (max-width: 480px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.field { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.field label { font-size: 13px; font-weight: 500; }
+.field .help { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.inp { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); overflow: hidden; }
+.inp:focus-within { border-color: var(--accent); }
+.inp span { font-family: var(--f-mono); font-size: 13px; color: var(--muted); padding: 7px 8px; display: flex; align-items: center; background: var(--surface); }
+.inp input, .inp select { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 500 15px var(--f-mono); padding: 7px 8px; }
+.inp input:focus, .inp select:focus { outline: none; }
+.inp select { font-family: var(--f-body); }
+input[type="text"] { font-family: var(--f-body) !important; }
+
+/* Resultados */
+.results { display: grid; gap: 16px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 880px) { .results { position: static; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.card h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; font-stretch: 110%; }
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.kpi { display: grid; gap: 2px; }
+.kpi .k { font-size: 12px; color: var(--muted); }
+.kpi .v { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
+.kpi .s { font-size: 12px; color: var(--muted); }
+.kpi.hero .v { font-size: 30px; }
+.verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+
+.bar { display: flex; gap: 2px; height: 28px; border-radius: 4px; overflow: hidden; }
+.bar div { min-width: 2px; transition: flex-grow .25s ease; }
+.bar div:hover { filter: brightness(1.1); }
+.legend { display: grid; gap: 6px; font-size: 13px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; }
+.legend .num { color: var(--ink); }
+.legend .pct { color: var(--muted); min-width: 6.5ch; text-align: right; white-space: nowrap; }
+.detail td { font-size: 13px; padding: 6px 0; }
+.detail td:first-child { color: var(--muted); }
+.detail tr.total td { color: var(--ink); font-weight: 600; border-top: 1.5px solid var(--ink); }
+.detail tr.sub td { color: var(--muted); font-size: 12px; }
+.suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.suggest .inp { width: 7.5rem; }
+.suggest strong { font-family: var(--f-mono); font-size: 20px; font-weight: 500; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 500 13px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--ink); }
+.note { font-size: 12px; color: var(--muted); max-width: 75ch; margin: 0; }
+.example { font-size: 12px; font-weight: 600; color: var(--warn); text-transform: uppercase; letter-spacing: 0.06em; }
+@media (prefers-reduced-motion: reduce) { .bar div { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:12px">
+    <div class="label">
+      <div class="brand" aria-hidden="true">BAN</div>
+      <div class="meta">
+        <h1>Calculadora de costo y margen</h1>
+        <div class="care">Playera heavyweight · 100% algodón peinado · 250 g/m² · fracción 6109.10</div>
+      </div>
+    </div>
+    <p class="intro">Captura la cotización de cada proveedor. La calculadora te da el costo real de cada prenda ya en tu bodega, cuánto ganas por pieza después de cobrar, enviar y anunciar, y qué precio necesitas para tu margen objetivo. <span class="example">Los valores iniciales son de ejemplo.</span></p>
+  </header>
+
+  <section aria-labelledby="cmp-h">
+    <div class="section-head">
+      <h2 id="cmp-h">Comparativa de proveedores</h2>
+      <span class="hint">Mismo precio de venta para todos. Toca una fila para editarla.</span>
+    </div>
+    <div class="table-scroll">
+      <table id="compare">
+        <thead><tr>
+          <th scope="col">Proveedor</th><th scope="col">Origen</th><th scope="col">Costo puesto / pz</th>
+          <th scope="col">Margen bruto</th><th scope="col">Ganancia / pz</th><th scope="col">Margen final</th>
+          <th scope="col">Caja para el lote</th><th scope="col">Piezas/mes para cubrir fijos</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="main">
+    <form id="form" autocomplete="off" novalidate>
+      <div class="tabs" role="tablist" aria-label="Proveedor que estás editando" id="tabs"></div>
+
+      <fieldset>
+        <legend>Proveedor y lote</legend>
+        <div class="grid">
+          <div class="field full"><label for="nombre">Nombre del proveedor</label>
+            <div class="inp"><input id="nombre" type="text" data-k="nombre"></div></div>
+          <div class="field full"><label for="origen">Dónde se fabrica</label>
+            <div class="inp"><select id="origen" data-k="origen">
+              <option value="mx">México (sin importación)</option>
+              <option value="tlc">País con tratado: Perú, Colombia, UE (0 % con certificado de origen)</option>
+              <option value="asia">Asia sin tratado: China, India, Pakistán… (35 %)</option>
+              <option value="otro">Otro (captura el arancel)</option>
+            </select></div></div>
+          <div class="field"><label for="costoUnit">Precio por pieza del proveedor</label>
+            <div class="inp"><input id="costoUnit" type="number" min="0" step="0.01" inputmode="decimal" data-k="costoUnit"><span id="monedaTag">MXN</span></div></div>
+          <div class="field"><label for="moneda">Moneda de la cotización</label>
+            <div class="inp"><select id="moneda" data-k="moneda"><option>MXN</option><option>USD</option><option>EUR</option></select></div></div>
+          <div class="field" id="tcField"><label for="tc">Tipo de cambio</label>
+            <div class="inp"><span>$</span><input id="tc" type="number" min="0" step="0.01" inputmode="decimal" data-k="tc"><span>MXN</span></div>
+            <span class="help">Actualízalo el día que pagues.</span></div>
+          <div class="field"><label for="lote">Piezas del lote</label>
+            <div class="inp"><input id="lote" type="number" min="1" step="1" inputmode="numeric" data-k="lote"><span>pz</span></div></div>
+          <div class="field"><label for="merma">Piezas defectuosas</label>
+            <div class="inp"><input id="merma" type="number" min="0" max="50" step="0.5" inputmode="decimal" data-k="merma"><span>%</span></div>
+            <span class="help">Piezas que no podrás vender.</span></div>
+          <div class="field"><label for="flete">Flete hasta tu bodega (total)</label>
+            <div class="inp"><span>$</span><input id="flete" type="number" min="0" step="1" inputmode="numeric" data-k="flete"><span>MXN</span></div></div>
+          <div class="field"><label for="muestras">Muestras y desarrollo (total)</label>
+            <div class="inp"><span>$</span><input id="muestras" type="number" min="0" step="1" inputmode="numeric" data-k="muestras"><span>MXN</span></div>
+            <span class="help">Se reparte entre las piezas del lote.</span></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="importBox">
+        <legend>Importación <small>solo si viene de fuera</small></legend>
+        <div class="grid">
+          <div class="field"><label for="arancel">Arancel</label>
+            <div class="inp"><input id="arancel" type="number" min="0" max="100" step="0.5" inputmode="decimal" data-k="arancel"><span>%</span></div>
+            <span class="help">Sobre el valor en aduana (mercancía + flete).</span></div>
+          <div class="field"><label for="agente">Agente aduanal y gastos (total)</label>
+            <div class="inp"><span>$</span><input id="agente" type="number" min="0" step="1" inputmode="numeric" data-k="agente"><span>MXN</span></div></div>
+          <p class="note full">Se suma automáticamente el DTA (0.8 % del valor en aduana). El IVA de importación (16 %) se muestra como dinero que necesitas en caja, pero no es costo porque se acredita.</p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Marca y empaque <small>por pieza</small></legend>
+        <div class="grid">
+          <div class="field"><label for="etiquetas">Etiquetas (marca + NOM-004)</label>
+            <div class="inp"><span>$</span><input id="etiquetas" type="number" min="0" step="0.5" inputmode="decimal" data-k="etiquetas"><span>MXN</span></div></div>
+          <div class="field"><label for="empaque">Bolsa, caja y tarjeta</label>
+            <div class="inp"><span>$</span><input id="empaque" type="number" min="0" step="0.5" inputmode="decimal" data-k="empaque"><span>MXN</span></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Venta <small>igual para todos los proveedores</small></legend>
+        <div class="grid">
+          <div class="field"><label for="precio">Precio al público (con IVA)</label>
+            <div class="inp"><span>$</span><input id="precio" type="number" min="0" step="1" inputmode="numeric" data-g="precio"><span>MXN</span></div></div>
+          <div class="field"><label for="piezasPedido">Piezas por pedido (promedio)</label>
+            <div class="inp"><input id="piezasPedido" type="number" min="1" step="0.1" inputmode="decimal" data-g="piezasPedido"><span>pz</span></div></div>
+          <div class="field"><label for="comisionPct">Comisión de pago</label>
+            <div class="inp"><input id="comisionPct" type="number" min="0" step="0.01" inputmode="decimal" data-g="comisionPct"><span>%</span></div>
+            <span class="help">Stripe ≈ 3.6 %. Mercado Pago ≈ 4.05 % ya con IVA.</span></div>
+          <div class="field"><label for="comisionFijo">Comisión fija por pedido</label>
+            <div class="inp"><span>$</span><input id="comisionFijo" type="number" min="0" step="0.5" inputmode="decimal" data-g="comisionFijo"><span>MXN</span></div></div>
+          <div class="field"><label for="envioCosto">Lo que te cuesta la guía</label>
+            <div class="inp"><span>$</span><input id="envioCosto" type="number" min="0" step="1" inputmode="numeric" data-g="envioCosto"><span>MXN</span></div>
+            <span class="help">Por pedido. Cotiza en Envia.com o Skydropx.</span></div>
+          <div class="field"><label for="envioCobrado">Lo que cobras de envío</label>
+            <div class="inp"><span>$</span><input id="envioCobrado" type="number" min="0" step="1" inputmode="numeric" data-g="envioCobrado"><span>MXN</span></div>
+            <span class="help">0 si das envío gratis.</span></div>
+          <div class="field"><label for="cac">Publicidad por pedido (CAC)</label>
+            <div class="inp"><span>$</span><input id="cac" type="number" min="0" step="1" inputmode="numeric" data-g="cac"><span>MXN</span></div></div>
+          <div class="field"><label for="devolPct">Devoluciones</label>
+            <div class="inp"><input id="devolPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" data-g="devolPct"><span>%</span></div>
+            <span class="help">Costo = envío de ida y vuelta de lo devuelto.</span></div>
+          <div class="field full"><label for="fijosMes">Gastos fijos al mes</label>
+            <div class="inp"><span>$</span><input id="fijosMes" type="number" min="0" step="100" inputmode="numeric" data-g="fijosMes"><span>MXN</span></div>
+            <span class="help">Hosting, dominio, contador, apps, almacén. Sin tu sueldo.</span></div>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" class="btn" id="dup">Duplicar este proveedor</button>
+        <button type="button" class="btn" id="del">Quitar este proveedor</button>
+        <button type="button" class="btn" id="reset">Volver a los valores de ejemplo</button>
+      </div>
+      <p class="note">Tus cambios se guardan en este navegador. Las cifras son una guía para decidir; confirma aranceles, honorarios del agente aduanal y comisiones vigentes antes de pagar.</p>
+    </form>
+
+    <aside class="results" aria-live="polite">
+      <div class="card">
+        <h3 id="resTitle">Resultado</h3>
+        <div class="kpis">
+          <div class="kpi hero"><span class="k">Costo puesto en bodega</span><span class="v" id="kLanded">—</span><span class="s">por pieza vendible</span></div>
+          <div class="kpi hero"><span class="k">Ganancia por pieza</span><span class="v" id="kContrib">—</span><span class="s" id="kContribPct">—</span></div>
+          <div class="kpi"><span class="k">Margen bruto</span><span class="v" id="kBruto">—</span><span class="s">meta ≥ 60 %</span></div>
+          <div class="kpi"><span class="k">Multiplicador</span><span class="v" id="kMult">—</span><span class="s">precio sin IVA ÷ costo</span></div>
+        </div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+
+      <div class="card">
+        <h3>A dónde va cada peso de una venta</h3>
+        <div class="bar" id="bar" role="img" aria-label="Desglose del precio de venta"></div>
+        <ul class="legend" id="legend"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Precio sugerido</h3>
+        <div class="suggest">
+          <label for="margenObj" style="font-size:13px">Margen final que quieres</label>
+          <div class="inp"><input id="margenObj" type="number" min="0" max="80" step="1" inputmode="numeric" data-g="margenObj"><span>%</span></div>
+          <span aria-hidden="true">→</span>
+          <strong id="sugerido">—</strong>
+          <button type="button" class="btn" id="usar">Usar este precio</button>
+        </div>
+        <p class="note" id="sugNote"></p>
+      </div>
+
+      <div class="card">
+        <h3>Costo del lote</h3>
+        <table class="detail"><tbody id="detail"></tbody></table>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var IVA = 0.16, DTA = 0.008, KEY = "ban-calculadora-v1";
+  var ARANCEL = { mx: 0, tlc: 0, asia: 35 };
+  var ORIGEN_TXT = { mx: "México", tlc: "Con tratado", asia: "Asia (35 %)", otro: "Otro" };
+
+  function ejemplo() {
+    return {
+      activo: 0,
+      g: { precio: 549, piezasPedido: 1.6, comisionPct: 3.6, comisionFijo: 3, envioCosto: 110, envioCobrado: 0, cac: 90, devolPct: 4, fijosMes: 6000, margenObj: 25 },
+      p: [
+        { nombre: "Taller en México (ejemplo)", origen: "mx", moneda: "MXN", costoUnit: 125, tc: 18.5, lote: 300, merma: 3, flete: 1500, muestras: 3000, arancel: 0, agente: 0, etiquetas: 9, empaque: 14 },
+        { nombre: "Fábrica en Perú (ejemplo)", origen: "tlc", moneda: "USD", costoUnit: 7.5, tc: 18.5, lote: 300, merma: 2, flete: 9000, muestras: 4500, arancel: 0, agente: 6500, etiquetas: 9, empaque: 14 },
+        { nombre: "Fábrica en China (ejemplo)", origen: "asia", moneda: "USD", costoUnit: 4.5, tc: 18.5, lote: 300, merma: 4, flete: 7000, muestras: 2500, arancel: 35, agente: 6500, etiquetas: 9, empaque: 14 }
+      ]
+    };
+  }
+
+  var state = load() || ejemplo();
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(KEY)); return s && s.p && s.p.length ? s : null; } catch (e) { return null; }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var mxn0 = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+  var mxn2 = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function m0(v) { return isFinite(v) ? mxn0.format(v) : "—"; }
+  function m2(v) { return isFinite(v) ? mxn2.format(v) : "—"; }
+  function pc(v) { return isFinite(v) ? (v * 100).toFixed(1).replace(".0", "") + " %" : "—"; }
+  function n(v) { v = parseFloat(v); return isFinite(v) ? v : 0; }
+
+  // Cálculo puro: un proveedor + supuestos de venta → todas las cifras.
+  function calcular(p, g) {
+    var importa = p.origen !== "mx";
+    var tc = p.moneda === "MXN" ? 1 : n(p.tc);
+    var lote = Math.max(1, Math.round(n(p.lote)));
+    var mercancia = n(p.costoUnit) * tc * lote;
+    var flete = n(p.flete);
+    var valorAduana = importa ? mercancia + flete : 0;
+    var arancel = importa ? valorAduana * n(p.arancel) / 100 : 0;
+    var dta = importa ? valorAduana * DTA : 0;
+    var agente = importa ? n(p.agente) : 0;
+    var ivaImport = importa ? (valorAduana + arancel + dta) * IVA : 0;
+    var marca = (n(p.etiquetas) + n(p.empaque)) * lote;
+    var muestras = n(p.muestras);
+    var costoLote = mercancia + flete + arancel + dta + agente + marca + muestras;
+    var vendibles = lote * (1 - Math.min(n(p.merma), 99) / 100);
+    var landed = costoLote / vendibles;
+
+    var ppp = Math.max(1, n(g.piezasPedido));
+    var precio = n(g.precio);
+    var sinIva = precio / (1 + IVA);
+    var ivaVenta = precio - sinIva;
+    var comision = precio * n(g.comisionPct) / 100 + n(g.comisionFijo) / ppp;
+    var envio = (n(g.envioCosto) - n(g.envioCobrado)) / ppp;
+    var devol = n(g.devolPct) / 100 * (2 * n(g.envioCosto) / ppp);
+    var cac = n(g.cac) / ppp;
+    var contrib = sinIva - landed - comision - envio - devol - cac;
+    var cajaPorPz = sinIva - comision - envio - devol - cac;
+
+    // Precio con IVA para que la ganancia sea margenObj % del precio sin IVA.
+    var mo = n(g.margenObj) / 100;
+    var k = landed + n(g.comisionFijo) / ppp + envio + devol + cac;
+    var den = 1 - mo - (1 + IVA) * n(g.comisionPct) / 100;
+    var sug = den > 0 ? (1 + IVA) * k / den : NaN;
+    var sugRed = isFinite(sug) ? Math.ceil((sug + 1) / 10) * 10 - 1 : NaN;
+
+    return {
+      importa: importa, lote: lote, vendibles: vendibles, mercancia: mercancia, flete: flete, arancel: arancel, dta: dta,
+      agente: agente, ivaImport: ivaImport, marca: marca, muestras: muestras, costoLote: costoLote, landed: landed,
+      precio: precio, sinIva: sinIva, ivaVenta: ivaVenta, comision: comision, envio: envio, devol: devol, cac: cac,
+      contrib: contrib, contribPct: contrib / sinIva, bruto: (sinIva - landed) / sinIva, mult: sinIva / landed,
+      cajaLote: costoLote + ivaImport,
+      equilibrioMes: contrib > 0 ? Math.ceil(n(g.fijosMes) / contrib) : NaN,
+      recuperaLote: cajaPorPz > 0 ? Math.ceil(costoLote / cajaPorPz) : NaN,
+      sugerido: sugRed
+    };
+  }
+
+  function estado(r) {
+    if (!isFinite(r.contribPct) || r.contribPct < 0.10) return ["bad", "No conviene"];
+    if (r.contribPct < 0.25) return ["warn", "Justo"];
+    return ["good", "Sano"];
+  }
+
+  var form = document.getElementById("form");
+  function $(id) { return document.getElementById(id); }
+
+  function pintarForm() {
+    var p = state.p[state.activo];
+    form.querySelectorAll("[data-k]").forEach(function (el) { el.value = p[el.dataset.k]; });
+    document.querySelectorAll("[data-g]").forEach(function (el) { el.value = state.g[el.dataset.g]; });
+    pintarVisibilidad();
+  }
+  function pintarVisibilidad() {
+    var p = state.p[state.activo];
+    $("importBox").hidden = p.origen === "mx";
+    $("tcField").hidden = p.moneda === "MXN";
+    $("monedaTag").textContent = p.moneda;
+    $("del").disabled = state.p.length < 2;
+  }
+
+  function pintarTabs() {
+    var tabs = $("tabs");
+    tabs.innerHTML = "";
+    state.p.forEach(function (p, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", i === state.activo ? "true" : "false");
+      b.textContent = p.nombre || ("Proveedor " + (i + 1));
+      b.addEventListener("click", function () { activar(i); });
+      tabs.appendChild(b);
+    });
+  }
+
+  function activar(i) { state.activo = i; save(); pintarTabs(); pintarForm(); pintarTodo(); }
+
+  function pintarComparativa(rs) {
+    var mejor = Math.min.apply(null, rs.map(function (r) { return r.landed; }));
+    var tb = document.querySelector("#compare tbody");
+    tb.innerHTML = "";
+    rs.forEach(function (r, i) {
+      var p = state.p[i], e = estado(r);
+      var tr = document.createElement("tr");
+      if (i === state.activo) tr.className = "active";
+      tr.tabIndex = 0;
+      tr.innerHTML =
+        "<td>" + esc(p.nombre || ("Proveedor " + (i + 1))) + "</td>" +
+        "<td>" + ORIGEN_TXT[p.origen] + "</td>" +
+        "<td class='num" + (r.landed === mejor && rs.length > 1 ? " best" : "") + "'>" + m2(r.landed) + "</td>" +
+        "<td class='num'>" + pc(r.bruto) + "</td>" +
+        "<td class='num'>" + m2(r.contrib) + "</td>" +
+        "<td><span class='num'>" + pc(r.contribPct) + "</span> <span class='pill " + e[0] + "'>" + e[1] + "</span></td>" +
+        "<td class='num'>" + m0(r.cajaLote) + "</td>" +
+        "<td class='num'>" + (isFinite(r.equilibrioMes) ? r.equilibrioMes + " pz" : "—") + "</td>";
+      tr.addEventListener("click", function () { activar(i); });
+      tr.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); activar(i); } });
+      tb.appendChild(tr);
+    });
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  function pintarResultado(r) {
+    var p = state.p[state.activo];
+    $("resTitle").textContent = p.nombre || "Resultado";
+    $("kLanded").textContent = m2(r.landed);
+    $("kContrib").textContent = m2(r.contrib);
+    $("kContrib").style.color = r.contrib < 0 ? "var(--bad)" : "";
+    $("kContribPct").textContent = pc(r.contribPct) + " del precio sin IVA";
+    $("kBruto").textContent = pc(r.bruto);
+    $("kMult").textContent = isFinite(r.mult) ? r.mult.toFixed(2) + "×" : "—";
+    var e = estado(r);
+    var txt = r.contrib <= 0
+      ? "Con este precio pierdes " + m2(-r.contrib) + " en cada pieza."
+      : "Necesitas vender " + r.equilibrioMes + " piezas al mes para cubrir tus gastos fijos, y " + r.recuperaLote + " de " + Math.floor(r.vendibles) + " para recuperar lo que pagaste por el lote.";
+    $("verdict").innerHTML = "<span class='pill " + e[0] + "'>" + e[1] + "</span><span>" + txt + "</span>";
+
+    // Barra de desglose del precio con IVA
+    var cobro = r.comision + r.envio + r.devol;
+    var segs = [
+      { t: "Producto puesto en bodega", v: r.landed, c: "var(--seg-1)" },
+      { t: "Cobro, envío y devoluciones", v: cobro, c: "var(--seg-2)" },
+      { t: "Publicidad", v: r.cac, c: "var(--seg-3)" },
+      { t: r.contrib >= 0 ? "Tu ganancia" : "Pérdida", v: r.contrib, c: "var(--seg-4)" },
+      { t: "IVA (se paga al SAT)", v: r.ivaVenta, c: "var(--seg-iva)" }
+    ];
+    var bar = $("bar"), leg = $("legend");
+    bar.innerHTML = ""; leg.innerHTML = "";
+    segs.forEach(function (s) {
+      var share = r.precio > 0 ? s.v / r.precio : 0;
+      if (s.v > 0) {
+        var d = document.createElement("div");
+        d.style.background = s.c; d.style.flexGrow = s.v;
+        d.title = s.t + ": " + m2(s.v) + " (" + pc(share) + ")";
+        bar.appendChild(d);
+      }
+      var li = document.createElement("li");
+      li.innerHTML = "<i style='background:" + s.c + "'></i><span>" + s.t + "</span><span class='num'" +
+        (s.v < 0 ? " style='color:var(--bad)'" : "") + ">" + m2(s.v) + "</span><span class='num pct'>" + pc(share) + "</span>";
+      leg.appendChild(li);
+    });
+
+    $("sugerido").textContent = m0(r.sugerido);
+    $("usar").disabled = !isFinite(r.sugerido);
+    $("sugNote").textContent = isFinite(r.sugerido)
+      ? "Precio con IVA redondeado a terminación 9, con el costo de este proveedor."
+      : "Ese margen no se alcanza con ninguna cifra; baja el margen objetivo o las comisiones.";
+
+    var rows = [["Mercancía (" + r.lote + " pz)", r.mercancia], ["Flete", r.flete]];
+    if (r.importa) rows.push(["Arancel", r.arancel], ["DTA (0.8 %)", r.dta], ["Agente aduanal y gastos", r.agente]);
+    rows.push(["Etiquetas y empaque", r.marca], ["Muestras y desarrollo", r.muestras]);
+    var html = rows.map(function (x) { return "<tr><td>" + x[0] + "</td><td class='num'>" + m0(x[1]) + "</td></tr>"; }).join("");
+    html += "<tr class='total'><td>Costo total del lote</td><td class='num'>" + m0(r.costoLote) + "</td></tr>";
+    html += "<tr class='sub'><td>÷ " + (Math.round(r.vendibles * 10) / 10) + " piezas vendibles</td><td class='num'>" + m2(r.landed) + " / pz</td></tr>";
+    if (r.importa) html += "<tr class='sub'><td>IVA de importación (acreditable, pero sale de caja)</td><td class='num'>" + m0(r.ivaImport) + "</td></tr>";
+    html += "<tr class='sub'><td>Dinero que necesitas para este lote</td><td class='num'>" + m0(r.cajaLote) + "</td></tr>";
+    $("detail").innerHTML = html;
+  }
+
+  function pintarTodo() {
+    var rs = state.p.map(function (p) { return calcular(p, state.g); });
+    pintarComparativa(rs);
+    pintarResultado(rs[state.activo]);
+  }
+
+  form.addEventListener("submit", function (e) { e.preventDefault(); });
+  document.addEventListener("input", function (e) {
+    var el = e.target, p = state.p[state.activo];
+    if (el.dataset.k) {
+      var k = el.dataset.k;
+      p[k] = el.value;
+      if (k === "origen" && ARANCEL[el.value] !== undefined) { p.arancel = ARANCEL[el.value]; $("arancel").value = p.arancel; }
+      if (k === "nombre") pintarTabs();
+      pintarVisibilidad();
+    } else if (el.dataset.g) {
+      state.g[el.dataset.g] = el.value;
+    } else return;
+    save(); pintarTodo();
+  });
+
+  $("usar").addEventListener("click", function () {
+    var r = calcular(state.p[state.activo], state.g);
+    if (!isFinite(r.sugerido)) return;
+    state.g.precio = r.sugerido; $("precio").value = r.sugerido; save(); pintarTodo();
+  });
+  $("dup").addEventListener("click", function () {
+    var c = JSON.parse(JSON.stringify(state.p[state.activo]));
+    c.nombre = (c.nombre || "Proveedor") + " (copia)";
+    state.p.push(c); activar(state.p.length - 1);
+  });
+  $("del").addEventListener("click", function () {
+    if (state.p.length < 2) return;
+    state.p.splice(state.activo, 1); activar(Math.max(0, state.activo - 1));
+  });
+  $("reset").addEventListener("click", function () { state = ejemplo(); save(); pintarTabs(); pintarForm(); pintarTodo(); });
+
+  pintarTabs(); pintarForm(); pintarTodo();
+})();
+</script>
